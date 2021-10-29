@@ -60,7 +60,7 @@ public class Main extends ListenerAdapter {
 		jda.awaitReady();
 		CommandListUpdateAction commands = jda.getGuildById(args[1]).updateCommands();
 
-		commands.addCommands(new CommandData("count", "Gets the current count of the specified word and/or user").addOptions(new OptionData(OptionType.USER, "user", "The user you want to query"), new OptionData(OptionType.STRING, "term", "The word you want to query about")));
+		commands.addCommands(new CommandData("count", "Gets the current count of the specified word and/or user").addOptions(new OptionData(OptionType.USER, "user", "The user you want to query", true), new OptionData(OptionType.STRING, "term", "The word you want to query about", true)));
 		commands.queue();
 
 
@@ -99,8 +99,9 @@ public class Main extends ListenerAdapter {
 			String desc= "";
 			if (event.getOption("user") != null) {
 				if (event.getOption("term") != null) { //nonnull user, nonnull term
-					User user = event.getOption("user").getAsUser();
 					String term = event.getOption("term").getAsString();
+					if (treeMaps.containsKey(term)) {
+					User user = event.getOption("user").getAsUser();
 					desc = user.getName();
 					desc += " has said the word "+term+ " ";
 					MutableInt count = null;
@@ -109,6 +110,10 @@ public class Main extends ListenerAdapter {
 						count = map.get(user.getIdLong());
 					}
 					desc += Objects.toString(count, "0")+" times!";
+					}
+					else {
+						desc = term + " is not tracked by this bot.";
+					}
 				}
 				else { //nonnull user, null term
 					User user = event.getOption("user").getAsUser();
