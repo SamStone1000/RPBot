@@ -75,7 +75,7 @@ public class Main extends ListenerAdapter {
 		for (String term : terms) {
 			int count = content.split(Pattern.quote(term), -1).length - 1;
 		if (count > 0) {
-			msg.reply(Integer.toString(count)).queue();
+			//msg.reply(Integer.toString(count)).queue();
 			Long id = msg.getAuthor().getIdLong();
 			TreeMap<Long, MutableInt> map = treeMaps.get(term);
 			MutableInt currentCount = map.get(id);
@@ -94,8 +94,6 @@ public class Main extends ListenerAdapter {
 	@Override
 	public void onSlashCommand(SlashCommandEvent event) {
 		if (event.getName().equals("count")) {
-			
-			
 			EmbedBuilder embed = new EmbedBuilder();
 			String desc= "";
 			if (event.getOption("user") != null) {
