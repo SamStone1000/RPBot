@@ -57,7 +57,7 @@ public class Main extends ListenerAdapter {
 		}
 
 		jda.awaitReady();
-		CommandListUpdateAction commands = jda.getGuildById(903451374799429673L).updateCommands();
+		CommandListUpdateAction commands = jda.getGuildById(args[1]).updateCommands();
 
 		commands.addCommands(new CommandData("count", "Gets the current count of the specified word and/or user").addOptions(new OptionData(OptionType.USER, "user", "The user you want to query"), new OptionData(OptionType.STRING, "term", "The word you want to query about")));
 		commands.queue();
