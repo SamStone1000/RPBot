@@ -4,6 +4,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Scanner;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
@@ -102,8 +103,12 @@ public class Main extends ListenerAdapter {
 					String term = event.getOption("term").getAsString();
 					desc = user.getName();
 					desc += " has said the word "+term+ " ";
-					MutableInt count = treeMaps.get(term).get(user.getIdLong());
-					desc += count.toString()+" times!";
+					MutableInt count = null;
+					TreeMap<Long, MutableInt> map = treeMaps.get(term);
+					if (map != null) {
+						count = map.get(user.getIdLong());
+					}
+					desc += Objects.toString(count, "0")+" times!";
 				}
 				else { //nonnull user, null term
 					User user = event.getOption("user").getAsUser();
