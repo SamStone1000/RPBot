@@ -2,7 +2,14 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Scanner;
@@ -11,10 +18,17 @@ import java.util.regex.Pattern;
 
 import javax.security.auth.login.LoginException;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.json.UTF8StreamJsonParser;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -29,7 +43,9 @@ public class Main extends ListenerAdapter {
 
 	static TreeMap<String, TreeMap<Long, MutableInt>> treeMaps;
 	static String[] terms;
+	static TextChannel voreChannel;
 
+	//args[0] should be the bots token, args[1] should be the Guild the bot works in, args[2] is the id of the channel to send vore to
 	public static void main(String[] args) throws LoginException, InterruptedException, FileNotFoundException {
 		JDABuilder builder = JDABuilder.createLight(args[0], GatewayIntent.GUILD_MESSAGES);
 		builder.addEventListeners(new Main());
@@ -58,25 +74,39 @@ public class Main extends ListenerAdapter {
 		}
 
 		jda.awaitReady();
-		CommandListUpdateAction commands = jda.getGuildById(args[1]).updateCommands();
-
+		Guild guild = jda.getGuildById(args[1]);
+		voreChannel = guild.getTextChannelById(args[2]);
+		
+		CommandListUpdateAction commands = guild.updateCommands();
 		commands.addCommands(new CommandData("count", "Gets the current count of the specified word and/or user").addOptions(new OptionData(OptionType.USER, "user", "The user you want to query"), new OptionData(OptionType.STRING, "term", "The word you want to query about")));
 		commands.queue();
-
-
-
-
 	}
 
 	@Override
 	public void onMessageReceived(MessageReceivedEvent event) {
-		//System.out.println("Message Received!");
+		System.out.println("Message Received!");
 		Message msg = event.getMessage();
 		String content = msg.getContentRaw().toLowerCase();
 		for (String term : terms) {
 			int count = content.split(Pattern.quote(term), -1).length - 1;
 		if (count > 0) {
-			//msg.reply(Integer.toString(count)).queue();
+			if (term.equals("vore"))
+			{
+				System.out.println("vore");
+				try
+				{
+					gete621(voreChannel, "vader-san+rating:s");
+					System.out.println("sent!");
+				} catch (MalformedURLException e)
+				{
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IOException e)
+				{
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
 			Long id = msg.getAuthor().getIdLong();
 			TreeMap<Long, MutableInt> map = treeMaps.get(term);
 			MutableInt currentCount = map.get(id);
@@ -90,8 +120,7 @@ public class Main extends ListenerAdapter {
 		}
 		}
 	}
-
-
+	
 	@Override
 	public void onSlashCommand(SlashCommandEvent event) {
 		if (event.getName().equals("count")) {
@@ -157,5 +186,27 @@ public class Main extends ListenerAdapter {
 			Map.Entry<String, TreeMap<K, V>> entry = itr.next();
 			writeMap(entry.getValue(), entry.getKey() + ".txt");
 		}
+	}
+	
+	private void gete621(TextChannel channel, String search) throws MalformedURLException, IOException {
+		HttpURLConnection connection = (HttpURLConnection) new URL("https://e621.net/posts.json?tags="+search+"+order:random+limit:1").openConnection();
+		connection.setRequestMethod("GET");
+		connection.setRequestProperty("User-Agent", "RPBot/2.0 by SamStone");
+		connection.connect();
+		InputStream stream = connection.getInputStream();
+		ObjectMapper mapper = new ObjectMapper();
+		Map<String, Object> jsonMap = mapper.readValue(stream, LinkedHashMap.class);
+		ArrayList posts = (ArrayList) jsonMap.get("posts");
+		LinkedHashMap post = (LinkedHashMap) posts.get(0);
+		LinkedHashMap file = (LinkedHashMap) post.get("file");
+		String url = (String) file.get("url");
+		String md5 = (String) file.get("md5");
+		
+		HttpURLConnection connection2 = (HttpURLConnection) new URL(url).openConnection();
+		connection2.setRequestMethod("GET");
+		connection2.setRequestProperty("User-Agent", "RPBot/2.0 by SamStone");
+		connection2.connect();
+		System.out.println(url.substring(url.length() - md5.length() - 3));
+		channel.sendFile(connection2.getInputStream(), url.substring(url.length() - md5.length() - 3)).queue();
 	}
 }
