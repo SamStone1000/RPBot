@@ -35,7 +35,7 @@ public class Main extends ListenerAdapter {
 		builder.addEventListeners(new Main());
 		JDA jda = builder.build();
 
-		terms = new String[] {"vore"};
+		terms = new String[] {"vore", "foo", "bar"};
 		treeMaps = new TreeMap<>();
 
 		for (String term : terms)
