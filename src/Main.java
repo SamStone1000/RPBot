@@ -95,8 +95,8 @@ public class Main extends ListenerAdapter {
 				System.out.println("vore");
 				try
 				{
-					gete621(voreChannel, "vader-san+rating:s");
-					System.out.println("sent!");
+					gete621(voreChannel, "vore");
+					//System.out.println("sent!");
 				} catch (MalformedURLException e)
 				{
 					// TODO Auto-generated catch block
