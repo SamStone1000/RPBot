@@ -160,13 +160,15 @@ public class Main extends ListenerAdapter {
 					User user = event.getOption("user").getAsUser();
 					String term = event.getOption("term").getAsString();
 					desc = user.getName();
-					desc += " has said the word \""+term+ "\" ";
+					desc += " has said \""+term+ "\" ";
 					MutableInt count = null;
 					TreeMap<Long, MutableInt> map = treeMaps.get(term);
 					if (map != null) {
 						count = map.get(user.getIdLong());
 						if (count != null)
-							desc += count.toString()+" times!";
+							desc += count.toString()+" times";
+						else
+							desc = "\""+term + "\" is not being tracked";
 					}
 					//desc += Objects.toString(count, "0")+" times!";
 				}
