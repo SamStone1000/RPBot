@@ -10,10 +10,14 @@ import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Scanner;
 import java.util.TreeMap;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.security.auth.login.LoginException;
@@ -27,31 +31,44 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageHistory;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.requests.restaction.CommandListUpdateAction;
+import net.dv8tion.jda.api.requests.restaction.pagination.MessagePaginationAction;
+import net.dv8tion.jda.api.utils.MemberCachePolicy;
+import net.dv8tion.jda.api.utils.concurrent.Task;
+import net.dv8tion.jda.internal.entities.ReceivedMessage;
+import net.dv8tion.jda.internal.requests.restaction.pagination.MessagePaginationActionImpl;
 
 public class Main extends ListenerAdapter {
 
 	static TreeMap<String, TreeMap<Long, MutableInt>> treeMaps;
 	static String[] terms;
+	static Pattern[] regex;
 	static TextChannel voreChannel;
+	static Guild guild;
+	Thread building;
 
 	//args[0] should be the bots token, args[1] should be the Guild the bot works in, args[2] is the id of the channel to send vore to
 	public static void main(String[] args) throws LoginException, InterruptedException, FileNotFoundException {
-		JDABuilder builder = JDABuilder.createLight(args[0], GatewayIntent.GUILD_MESSAGES);
+		JDABuilder builder = JDABuilder.createLight(args[0], GatewayIntent.GUILD_MESSAGES, GatewayIntent.GUILD_MEMBERS);
 		builder.addEventListeners(new Main());
+		builder.setMemberCachePolicy(MemberCachePolicy.ALL);
 		JDA jda = builder.build();
 
 		terms = new String[] {"vore"};
+		regex = new Pattern[] {Pattern.compile("(?:^|\\W)vore")};
 		treeMaps = new TreeMap<>();
 
 		for (String term : terms)
@@ -72,27 +89,39 @@ public class Main extends ListenerAdapter {
 			treeMaps.put(term, new TreeMap<Long, MutableInt>());
 			}
 		}
-
 		jda.awaitReady();
-		Guild guild = jda.getGuildById(args[1]);
+		guild = jda.getGuildById(args[1]);
+		guild.loadMembers();
 		voreChannel = guild.getTextChannelById(args[2]);
 		
 		CommandListUpdateAction commands = guild.updateCommands();
-		commands.addCommands(new CommandData("count", "Gets the current count of the specified word and/or user").addOptions(new OptionData(OptionType.USER, "user", "The user you want to query"), new OptionData(OptionType.STRING, "term", "The word you want to query about")));
+		commands.addCommands(
+				new CommandData("count", "Gets the current count of the specified word and/or user")
+				.addOptions(
+						new OptionData(OptionType.USER, "user", "The user you want to query").setRequired(true), 
+						new OptionData(OptionType.STRING, "term", "The word you want to query about").setRequired(true)));
+		commands.addCommands(
+				new CommandData("rebuild", "Rebuilds the tracked term counts from message history"));
 		commands.queue();
 	}
 
 	@Override
 	public void onMessageReceived(MessageReceivedEvent event) {
-		System.out.println("Message Received!");
+		//System.out.println("Message Received!");
 		Message msg = event.getMessage();
+		User author = msg.getAuthor();
+		if (author.isBot()) return;
+		Long id = author.getIdLong();
 		String content = msg.getContentRaw().toLowerCase();
-		for (String term : terms) {
-			int count = content.split(Pattern.quote(term), -1).length - 1;
+		for (int i = 0; i < terms.length; i++) {
+			String term = terms[i];
+			Matcher matcher = regex[i].matcher(content);
+			int count = 0;
+			while (matcher.find()) count++;
 		if (count > 0) {
 			if (term.equals("vore"))
 			{
-				System.out.println("vore");
+				//System.out.println("vore");
 				try
 				{
 					gete621(voreChannel, "vore");
@@ -107,16 +136,16 @@ public class Main extends ListenerAdapter {
 					e.printStackTrace();
 				}
 			}
-			Long id = msg.getAuthor().getIdLong();
 			TreeMap<Long, MutableInt> map = treeMaps.get(term);
 			MutableInt currentCount = map.get(id);
 			if (currentCount != null)
 			{
 				currentCount.add(count);
 			} else {
-				map.put(id, new MutableInt(count));
+				//map.put(id, new MutableInt(count));
 			}
-			writeMap(map, term + ".txt");
+			if (building == null || !building.isAlive())
+				writeMap(map, term + ".txt");
 		}
 		}
 	}
@@ -131,13 +160,15 @@ public class Main extends ListenerAdapter {
 					User user = event.getOption("user").getAsUser();
 					String term = event.getOption("term").getAsString();
 					desc = user.getName();
-					desc += " has said the word "+term+ " ";
+					desc += " has said the word \""+term+ "\" ";
 					MutableInt count = null;
 					TreeMap<Long, MutableInt> map = treeMaps.get(term);
 					if (map != null) {
 						count = map.get(user.getIdLong());
+						if (count != null)
+							desc += count.toString()+" times!";
 					}
-					desc += Objects.toString(count, "0")+" times!";
+					//desc += Objects.toString(count, "0")+" times!";
 				}
 				else { //nonnull user, null term
 					User user = event.getOption("user").getAsUser();
@@ -155,6 +186,65 @@ public class Main extends ListenerAdapter {
 			if (desc.equals("")) desc = "foobar";
 			embed.setDescription(desc);
 			event.replyEmbeds(embed.build()).setEphemeral(false).queue();
+		}
+		else if (event.getName().equals("rebuild")) {
+			User user = event.getUser();
+			if (user.getIdLong() != 275383746306244608L) {
+				event.reply("You can not execute this command").queue();
+			}
+			else {
+				event.reply("Acknowledged").queue();
+				treeMaps = new TreeMap<>();
+				List<Member> members = guild.getMembers();
+				for (int i = 0; i < terms.length; i++) {
+					TreeMap<Long, MutableInt> map = new TreeMap<>();
+					int length = members.size();
+					for (int j = 0; j < length; j++) {
+						Member member = members.get(j);
+						if (member.getUser().isBot()) continue;
+						map.put(member.getIdLong(), new MutableInt(0));
+					}
+					treeMaps.put(terms[i], map);
+				}
+				OptionMapping temp = event.getOption("term");
+				String[] tempTerms;
+				if (temp != null)
+					tempTerms = new String[] {temp.getAsString()};
+				else
+					tempTerms = terms;
+				List<TextChannel> channels = guild.getTextChannels();
+				Counting tempCount = new Counting(tempTerms, regex, treeMaps);
+				MutableInt searched = new MutableInt(0);
+				int channelCount = channels.size();
+				TextChannel commandChannel = event.getTextChannel();
+				ArrayList<MessagePaginationAction> histories = new ArrayList<>();
+				for (TextChannel channel : channels) histories.add(channel.getIterableHistory());
+				Runnable runnable = () -> {
+					long truestart = System.currentTimeMillis();
+				for (MessagePaginationAction history : histories) {
+					long start = System.currentTimeMillis();
+						//event.getHook().editOriginal("Searching channel \""+channel.getName()+"\" "+searched+"/"+channelCount).queue();
+						try
+						{
+							history.forEachAsync(tempCount).get();
+						} catch (InterruptedException | ExecutionException e)
+						{
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						searched.add(1);
+						long end = System.currentTimeMillis();
+						commandChannel.sendMessage("Searched channel \""+history.getChannel().getName()+"\" "+searched+"/"+channelCount+" Took "+(end - start)+" ms").queue();
+				}
+				//treeMaps = tempCount.getMaps();
+				long trueend = System.currentTimeMillis();
+				writeMaps(treeMaps);
+				commandChannel.sendMessage(user.getAsMention()+" Finished map rebuild in "+(trueend - truestart)+" ms!").queue();
+				//commandChannel.sendMessage(user.getAsMention()).queue();
+				};
+				building = new Thread(runnable);
+				building.start();
+			}
 		}
 	}
 
@@ -206,7 +296,7 @@ public class Main extends ListenerAdapter {
 		connection2.setRequestMethod("GET");
 		connection2.setRequestProperty("User-Agent", "RPBot/2.0 by SamStone");
 		connection2.connect();
-		System.out.println(url.substring(url.length() - md5.length() - 3));
+		//System.out.println(url.substring(url.length() - md5.length() - 3));
 		channel.sendFile(connection2.getInputStream(), url.substring(url.length() - md5.length() - 3)).queue();
 	}
 }
