@@ -45,6 +45,7 @@ import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.requests.restaction.CommandListUpdateAction;
+import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import net.dv8tion.jda.api.requests.restaction.pagination.MessagePaginationAction;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import net.dv8tion.jda.api.utils.concurrent.Task;
@@ -299,6 +300,6 @@ public class Main extends ListenerAdapter {
 		connection2.setRequestProperty("User-Agent", "RPBot/2.0 by SamStone");
 		connection2.connect();
 		//System.out.println(url.substring(url.length() - md5.length() - 3));
-		channel.sendFile(connection2.getInputStream(), url.substring(url.length() - md5.length() - 3)).queue();
+		channel.sendFile(connection2.getInputStream(), "SPOILER_"+url.substring(url.length() - md5.length() - 3)).queue();
 	}
 }
