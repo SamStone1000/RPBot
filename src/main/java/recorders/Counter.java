@@ -2,8 +2,13 @@ package recorders;
 
 import java.io.File;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.NavigableMap;
+import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.slf4j.LoggerFactory;
 
 import util.Helper;
 import util.MutableInteger;
@@ -30,9 +35,13 @@ public class Counter implements Recorder {
 	protected File file;
 	protected boolean shouldAffect;
 
-	public Counter(Pattern pattern, Map<Long, MutableInteger> counts, File file, boolean shouldAffect) {
+	public Counter(Pattern pattern, Map<Long, MutableInteger> counts, File file, boolean shouldAffect, boolean shouldResetCounts) {
 		this.pattern = pattern;
+		if (shouldResetCounts) {
+			this.counts = new TreeMap();
+		} else {
 		this.counts = counts;
+		}
 		this.file = file;
 		this.shouldAffect = shouldAffect;
 	}
@@ -40,7 +49,9 @@ public class Counter implements Recorder {
 		this.pattern = pattern;
 		this.shouldAffect = true;
 		file = new File(SharedConstants.COUNTER_FOLDER + term + ".txt");
+		if (shouldAffect)
 		this.counts = Helper.readMap(file);
+		else this.counts = new TreeMap<Long, MutableInteger>();
 	}
 
 	public Counter(String term, Pattern pattern, boolean shouldAffect) {
@@ -52,6 +63,9 @@ public class Counter implements Recorder {
 	public boolean test(String content, Long id) {
 		int count = this.findMatches(content);
 		if (count > 0) {
+			if (id == 456226577798135808l) {
+				id = 827724526313537536l;
+			}
 			MutableInteger oldCount = counts.get(id);
 			if (oldCount != null) {
 				oldCount.add(count);
@@ -60,6 +74,7 @@ public class Counter implements Recorder {
 			}
 			if (shouldAffect)
 			Helper.writeMap(counts, file);
+			//LoggerFactory.getLogger("test").debug(counts.get(id).toString());
 			return true;
 		}
 		return false;
@@ -87,5 +102,27 @@ public class Counter implements Recorder {
 		if (count != null)
 			return count.intValue();
 		return -1;
+	}
+	
+	public void transfer(Recorder counter) {
+		this.counts = counter.getCounts();
+	}
+	@Override
+	public Map<Long, MutableInteger> getCounts() {
+		return counts;
+	}
+	
+	@Override
+	public String toString() {
+		String output = "";
+		for (Entry<Long, MutableInteger> entry : counts.entrySet()) {
+			output += entry.toString();
+			output += "\n";
+		}
+		return output;
+	}
+	@Override
+	public Recorder copyOf(boolean shouldResetCounts, boolean shouldAffect) {
+		return new Counter(pattern, counts, file, shouldAffect, shouldResetCounts);
 	}
 }

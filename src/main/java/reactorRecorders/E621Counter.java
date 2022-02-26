@@ -1,5 +1,6 @@
 package reactorRecorders;
 
+import java.io.File;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -14,6 +15,7 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import recorders.Counter;
+import util.MutableInteger;
 
 public class E621Counter extends Counter implements ReactorRecord {
 
@@ -23,6 +25,13 @@ public class E621Counter extends Counter implements ReactorRecord {
 
 	public E621Counter(String term, Pattern pattern, boolean shouldEffect, long channelId, String searchTerms, JDA jda) {
 		super(term, pattern, shouldEffect);
+		this.channelId = channelId;
+		this.searchTerms = searchTerms;
+		this.jda = jda;
+	}
+
+	public E621Counter(Pattern pattern, Map<Long, MutableInteger> counts, File file, boolean shouldAffect, long channelId, String searchTerms, JDA jda, boolean shouldResetCounts) {
+		super(pattern, counts, file, shouldAffect, shouldResetCounts);
 		this.channelId = channelId;
 		this.searchTerms = searchTerms;
 		this.jda = jda;
@@ -58,6 +67,11 @@ public class E621Counter extends Counter implements ReactorRecord {
 
 		}
 		}
+		
 	}
+	public ReactorRecord copyOf(boolean shouldResetCounts, boolean shouldAffect) {
+		return new E621Counter(pattern, counts, file, shouldAffect, channelId, searchTerms, jda, shouldResetCounts);
+	}
+
 
 }

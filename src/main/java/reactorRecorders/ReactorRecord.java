@@ -7,4 +7,5 @@ import recorders.Recorder;
 
 public interface ReactorRecord extends Recorder, Consumer<Message> {
 
+	public ReactorRecord copyOf(boolean shouldAffect, boolean shouldAffect2);
 }

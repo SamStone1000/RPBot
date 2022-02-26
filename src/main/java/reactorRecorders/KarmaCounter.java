@@ -4,49 +4,75 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.User;
 import util.Helper;
 import util.MutableInteger;
 import util.SharedConstants;
 
-public class KarmaCounter implements ReactorRecord {
+public class KarmaCounter {
 
 	private Map<Long, MutableInteger> karmaCounts;
 	private Map<Long, MutableInteger> givenCounts;
-	private static Pattern mentionPattern = Pattern.compile("(?:<@!)(\\d*?)(?:>)");
-	private static int MENTION_OFFSET = 3;
+	private static Pattern mentionPattern = Pattern.compile("(?:<@!*?)(\\d*?)(?:>) *?([+-]{2})");
+	//private static int MENTION_OFFSET = 3;
 	private boolean shouldSave;
 	private File karmaFile;
 	private File givenFile;
 
 	public KarmaCounter(boolean shouldSave) {
-		this.shouldSave = true;
+		this.shouldSave = shouldSave;
 		karmaFile = new File(SharedConstants.REACT_RECORD_FOLDER + "karma" + ".txt");
 		givenFile = new File(SharedConstants.REACT_RECORD_FOLDER + "givenKarma" + ".txt");
+		if (shouldSave) {
 		this.karmaCounts = Helper.readMap(karmaFile);
 		this.givenCounts = Helper.readMap(givenFile);
+		} else {
+			this.karmaCounts = new TreeMap<Long, MutableInteger>();
+			this.givenCounts = new TreeMap<Long, MutableInteger>();
+		}
 	}
 
 	public KarmaCounter() {
 		this(true);
 	}
 
+	public KarmaCounter(Map<Long, MutableInteger> karmaCounts2, Map<Long, MutableInteger> givenCounts2, File karmaFile2,
+			File givenFile2, boolean shouldResetCounts, boolean shouldAffect) {
+		if (shouldResetCounts) {
+			this.karmaCounts = new TreeMap<>();
+			this.givenCounts = new TreeMap<>();
+		} else {
+		this.karmaCounts = karmaCounts2;
+		this.givenCounts = givenCounts2;
+		}
+		this.karmaFile = karmaFile2;
+		this.givenFile = givenFile2;
+		this.shouldSave = shouldAffect;
+	}
+
 	public List<Long> findKarma(String content, Long id) {
 		String stripped = content.replaceAll(" ", "");
-		Matcher matcher = mentionPattern.matcher(stripped);
+		Matcher matcher = mentionPattern.matcher(content);
 		List<Long> receivers = new ArrayList<>();
+		if (id == 456226577798135808l) {
+			id = 827724526313537536l;
+		}
 		while (matcher.find())
 		{
-			int end = matcher.end();
+			//int end = matcher.end();
 			int change = 0;
 			try
 			{
-				String decider = stripped.substring(end, end + 2);
+				String decider = matcher.group(2);
 				if (decider.equals("++"))
 				{
 					change = 1;
@@ -59,9 +85,12 @@ public class KarmaCounter implements ReactorRecord {
 			{
 			}
 			if (change == 0) continue;
-			System.out.println(matcher.group());
-			String group = matcher.group();
-			long receiver = Long.valueOf(group.substring(MENTION_OFFSET, group.length() - 1));
+		//String group = matcher.group();
+			//long receiver = Long.valueOf(group.substring(MENTION_OFFSET, group.length() - 1));
+			long receiver = Long.valueOf(matcher.group(1));
+			if (receiver == 456226577798135808l) {
+				receiver = 827724526313537536l;
+			}
 			receivers.add(receiver);
 			MutableInteger oldCount = karmaCounts.get(receiver);
 			if (oldCount != null)
@@ -99,14 +128,14 @@ public class KarmaCounter implements ReactorRecord {
 		if (!users.isEmpty())
 		{
 			String output = "";
-			JDA jda = message.getJDA();
+			Guild guild = message.getGuild();
 			Long lastUser = null;
 			for (Long id : users)
 			{
 				if (id.equals(lastUser)) continue;
 				lastUser = id;
-				User user = jda.getUserById(id);
-				output += user.getName() + " now has " + getKarma(id) + " karma, ";
+				Member user = guild.getMemberById(id);
+				output += user.getEffectiveName() + " now has " + getKarma(id) + " karma, ";
 			}
 			message.reply(output).mentionRepliedUser(false).queue();
 			/*
@@ -128,23 +157,28 @@ public class KarmaCounter implements ReactorRecord {
 		return 0;
 	}
 
-	@Override
 	public void save() {
 		Helper.writeMap(karmaCounts, karmaFile);
 		Helper.writeMap(givenCounts, givenFile);
 	}
 
-	
-
-	@Override
-	public boolean test(String t, Long u) {
-		return false;
+	public void transfer(KarmaCounter karmaCounter) {
+		this.karmaCounts = karmaCounter.karmaCounts;
+		this.givenCounts = karmaCounter.givenCounts;
 	}
 
 	@Override
-	public int getCount(long id) {
-		// TODO Auto-generated method stub
-		return 0;
+	public String toString() {
+		String output = "Karma\n";
+		for (Entry<Long, MutableInteger> entry : karmaCounts.entrySet()) {
+			output += entry.toString();
+			output += "\n";
+		}
+		return output;
+		
 	}
 
+	public KarmaCounter copyOf(boolean shouldResetCounts, boolean shouldAffect) {
+		return new KarmaCounter(karmaCounts, givenCounts, karmaFile, givenFile, shouldResetCounts, shouldAffect);
+	}
 }

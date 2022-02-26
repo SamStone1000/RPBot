@@ -48,7 +48,7 @@ public class Helper {
 			str += new String(Helper.toChars(entry.getValue().intValue	()));
 		}
 
-		try (FileWriter fileWriter = new FileWriter(file, StandardCharsets.UTF_16)){
+		try (FileWriter fileWriter = new FileWriter(file, StandardCharsets.UTF_16BE)){
 			fileWriter.write(str);
 			fileWriter.flush();
 		} catch (IOException e) {
@@ -62,7 +62,7 @@ public class Helper {
 		if (file.exists()) {
 
 			try (InputStream in = new FileInputStream(file);
-					Reader reader = new InputStreamReader(in, StandardCharsets.UTF_16);
+					Reader reader = new InputStreamReader(in, StandardCharsets.UTF_16BE);
 					BufferedReader buffer = new BufferedReader(reader);)
 			{
 
@@ -81,6 +81,42 @@ public class Helper {
 			}
 		}
 		return map;
+	}
+
+	public static byte[] longToBytes(long l) {
+	    byte[] result = new byte[Long.BYTES];
+	    for (int i = Long.BYTES - 1; i >= 0; i--) {
+	        result[i] = (byte)(l & 0xFF);
+	        l >>= Byte.SIZE;
+	    }
+	    return result;
+	}
+
+	public static long bytesToLong(final byte[] b) {
+	    long result = 0;
+	    for (int i = 0; i < Long.BYTES; i++) {
+	        result <<= Byte.SIZE;
+	        result |= (b[i] & 0xFF);
+	    }
+	    return result;
+	}
+	
+	public static byte[] intToBytes(int l) {
+	    byte[] result = new byte[Integer.BYTES];
+	    for (int i = Integer.BYTES - 1; i >= 0; i--) {
+	        result[i] = (byte)(l & 0xFF);
+	        l >>= Byte.SIZE;
+	    }
+	    return result;
+	}
+
+	public static int bytesToInt(final byte[] b) {
+	    int result = 0;
+	    for (int i = 0; i < Integer.BYTES; i++) {
+	        result <<= Byte.SIZE;
+	        result |= (b[i] & 0xFF);
+	    }
+	    return result;
 	}
 }
 

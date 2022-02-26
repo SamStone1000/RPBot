@@ -1,3 +1,5 @@
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -11,11 +13,15 @@ import java.util.regex.Pattern;
 
 import javax.security.auth.login.LoginException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.TextChannel;
@@ -37,12 +43,13 @@ import record.Channels;
 import recorders.Counter;
 import recorders.MessageProcessers;
 import util.MutableInteger;
+import util.SharedConstants;
 
 public class Main extends ListenerAdapter {
 
 	MessageProcessers messageProcessers;
 	Channels channels;
-
+	Logger logger;
 
 
 	//args[0] should be the bots token, args[1] should be the Guild the bot works in, args[2] is the id of the channel to send vore to
@@ -54,18 +61,22 @@ public class Main extends ListenerAdapter {
 
 		MessageProcessers messageProcessers = new MessageProcessers();
 		//Counter voreCounter = new Counter("vore", Pattern.compile("(?:^|\\W)vore"));
-		Reactioner mogusReactor = new Reactioner(Pattern.compile("(?:^|\\W)mogus(?:$|\\W)"), "ðŸ‘�");
+		Reactioner mogusReactor = new Reactioner(Pattern.compile("(?:^|\\W)mogus(?:$|\\W)"), "👍");
 		KarmaCounter karmaCounter = new KarmaCounter();
-		E621Counter voreCounter = new E621Counter("vore", Pattern.compile("(?:^|\\W)vore"), true, Long.valueOf(args[2]), "vore", jda);
-
+		E621Counter voreCounter = new E621Counter("vore", Pattern.compile("(?:^|\\W)vore", Pattern.CASE_INSENSITIVE), true, Long.valueOf(args[2]), "vore", jda);
+		Counter counter = new Counter("cunk", Pattern.compile("(?:^|\\W)cunk(?:$|\\W)"), true);
+				
 		//messageProcessers.addCounter("vore", voreCounter);
 		messageProcessers.addReactor(mogusReactor);
 		messageProcessers.setKarmaCounter(karmaCounter);
 		messageProcessers.addReactorRecord("vore", voreCounter);
-
+		//messageProcessers.addCounter("cunk", counter);
+		
+		Logger logger = LoggerFactory.getLogger("MainLogger");
+		
 		jda.awaitReady();
 		Channels channels = new Channels(jda, Long.parseLong(args[1]));
-			
+		jda.addEventListener(new Main(messageProcessers, channels, logger));
 		
 		Guild guild = jda.getGuildById(args[1]);
 		CommandListUpdateAction commands = guild.updateCommands();
@@ -78,6 +89,8 @@ public class Main extends ListenerAdapter {
 				Commands.slash("rebuild", "Rebuilds stuff")
 				.addOption(OptionType.CHANNEL, "channel", "The specific channel to rebuild"));
 		commands.addCommands(
+				Commands.slash("recount", "Recounts stuff"));
+		commands.addCommands(
 				Commands.slash("karma", "Checks karma")
 				.addOptions(
 						new OptionData(OptionType.USER, "user", "The user to get the current karma count of").setRequired(true)));
@@ -87,23 +100,27 @@ public class Main extends ListenerAdapter {
 						new OptionData(OptionType.USER, "user", "The user to give karma to").setRequired(true)));
 		commands.addCommands(
 				Commands.slash("shutdown", "shuts down bot"));
+		commands.addCommands(
+				Commands.slash("debug", "Collection of commands to help with debugging")
+				.addOptions(
+						new OptionData(OptionType.STRING, "command", "The command to fire").setRequired(true),
+						new OptionData(OptionType.STRING, "arguments", "Arguments to pass to the command")));
 		//commands.addCommands(Commands.message("Give"));
 		commands.queue();
-		
-		jda.addEventListener(new Main(messageProcessers, channels));
 	}
 	
-	public Main(MessageProcessers processers, Channels channels) {
+	public Main(MessageProcessers processers, Channels channels, Logger logger) {
 		this.messageProcessers = processers;
 		this.channels = channels;
+		this.logger = logger;
 	}
 
 	@Override
 	public void onMessageReceived(MessageReceivedEvent event) {
-		//System.out.println("Message Received!");
 		Message msg = event.getMessage();
+		//logger.info(msg.getContentRaw());
 		User author = msg.getAuthor();
-
+		channels.syncChannel(msg);
 		if (author.isBot()) return;
 		messageProcessers.accept(msg);
 		}
@@ -114,30 +131,43 @@ public class Main extends ListenerAdapter {
 		switch (name)
 		{
 		case "count":
-			User user = event.getOption("user").getAsUser();
+			event.deferReply().queue();
+			Member user = event.getGuild().getMember(event.getOption("user").getAsUser());
 			String term = event.getOption("term").getAsString();
 			int count = messageProcessers.getCount(term, user.getIdLong());
 
 			String output;
 			if (count > 0) {
-				output = user.getName() + " has said \""+term+"\" "+count+" times.";
+				output = user.getEffectiveName() + " has said \""+term+"\" "+count+" times.";
 			} else if (count == -1) {
-				output = user.getName() + " has not said \""+term+".\"";
+				output = user.getEffectiveName() + " has not said \""+term+".\"";
 			} else {
+				
+				Counter tempCounter = new Counter(term, Pattern.compile(term), false);
+				MessageProcessers tempProcessers = new MessageProcessers();
+				tempProcessers.addCounter(term, tempCounter);
+				channels.searchChannels(tempProcessers);
+				count = tempProcessers.getCount(term, user.getIdLong());
+				if (count > 0) {
+					output = user.getEffectiveName() + " has said \""+term+"\" "+count+" times.";
+				} else if (count == -1) {
+					output = user.getEffectiveName() + " has not said \""+term+".\"";
+				} else {
 				output = "\""+term+"\" is currently not being tracked.";
+				}
 			}
-			event.reply(output).queue();
+			event.getHook().editOriginal(output).queue();
 			break;
 		case "given":
-			user = event.getOption("user").getAsUser();
+			user = event.getGuild().getMember(event.getOption("user").getAsUser());
 			count = messageProcessers.karmaCounter.getGiven(user.getIdLong());
-			output = user.getName() +" has given "+ count + " karma";
+			output = user.getEffectiveName() +" has given "+ count + " karma";
 			event.reply(output).queue();
 			break;
 		case "karma":
-			user = event.getOption("user").getAsUser();
+			user = event.getGuild().getMember(event.getOption("user").getAsUser());
 			count = messageProcessers.karmaCounter.getKarma(user.getIdLong());
-			output = user.getName() + " has " + count + " karma";
+			output = user.getEffectiveName() + " has " + count + " karma";
 			event.reply(output).queue();
 			break;
 		case "recount":
@@ -161,22 +191,44 @@ public class Main extends ListenerAdapter {
 			if (event.getUser().getIdLong() == 275383746306244608l)
 				System.exit(0);
 			break;
+		case "debug":
+			if (event.getUser().getIdLong() == 275383746306244608l) {
+				String command = event.getOption("command").getAsString();
+				switch (command) {
+				case "dumpCounts":
+					event.reply(messageProcessers.toString()).queue();
+					break;
+				case "copyCat" :
+				event.reply("a").setEphemeral(true).queue();
+				event.getChannel().sendMessage(event.getOption("arguments").getAsString()).queue();
+				break;
+				}
+			} else {
+				event.reply("uh no");
+			}
 		}
 	}
-	
+
 	private void rebuild(MessageChannel channel) {
+		logger.info("Rebuilding channels cache");
+		Thread thread = new Thread(() -> {
 		channels.fetchAll(channel.getIdLong());
+		});
+		thread.start();
 	}
 
 	private void recount(MessageChannel messageChannel) {
-		KarmaCounter karmaCounter = new KarmaCounter(false);
-		Counter voreCounter = new Counter("vore", Pattern.compile("(?:^|\\W)vore"), false);
-		
-		MessageProcessers processer = new MessageProcessers();
-		processer.addCounter("vore", voreCounter);
-		processer.setKarmaCounter(karmaCounter);
-		
-		
+		logger.info("Recounting entire count cache");
+		MessageProcessers processer = messageProcessers.copyOf(true, false);
+		Thread thread = new Thread(() -> {
+		long start = System.currentTimeMillis();
+		channels.searchChannels(processer);
+		long end = System.currentTimeMillis();
+		messageChannel.sendMessage("Searched all channels in "+ (end - start) + " ms").queue();
+		processer.saveAll();
+		messageProcessers.transferCounts(processer);
+		});
+		thread.start();
 	}
 
 	@Override

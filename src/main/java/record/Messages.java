@@ -1,9 +1,13 @@
 package record;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,8 +16,12 @@ import java.io.RandomAccessFile;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Message;
@@ -22,10 +30,11 @@ import net.dv8tion.jda.api.entities.TextChannel;
 import recorders.MessageProcessers;
 import recorders.Recorder;
 import util.Helper;
+import util.SharedConstants;
 
 /*
  * At the beginning of the file there will be the id of the last message downloaded
- * Messages are stored on disk in a text file in the format <author id><message><separator>
+ * Messages are stored on disk in a text file in the format <author id><message length (in bytes)><message>
  * the author id will always be a sequence of 4 characters and thus no separator is needed
  */
 public class Messages {
@@ -35,18 +44,47 @@ public class Messages {
 	private long recentId;
 	private JDA jda;
 	//measured in characters, length of metadeta before each message on disk
-	private static int METADATA_LENGTH = (Long.BYTES / 2) + 1;
+	private static int METADATA_LENGTH = Long.BYTES + Long.BYTES;
 
 	public static final char SEPARATOR = 0xFFFF;
 
 	public static void main(String[] args) throws IOException {
-		char foo = 0;
-		System.out.println(foo);
+		//FileOutputStream fos = new FileOutputStream(new File("h"), false);
+		//BufferedOutputStream buffer = new BufferedOutputStream(fos);
+		//buffer.write(Helper.longToBytes(123000l));
+		//buffer.close();
+		InputStream in = new FileInputStream(new File("h"));
+		BufferedInputStream buffer = new BufferedInputStream(in);
+		
+//		byte[] messageContent = new String("cunk").getBytes(StandardCharsets.UTF_16BE);
+//		byte[] output = new byte[METADATA_LENGTH + messageContent.length];
+//		//copy message into output array with empy header
+//		System.arraycopy(messageContent, 0, output, METADATA_LENGTH, messageContent.length);
+//		//copy author id into output
+//		byte[] author = Helper.longToBytes(5);
+//		System.arraycopy(author, 0, output, 0, author.length);
+//		//copy message length into output
+//		byte[] length = Helper.longToBytes(messageContent.length);
+//		System.arraycopy(length, 0, output, author.length, length.length);
+//		buffer.write(output);
+//		buffer.close();
+		byte[] authorBytes = new byte[Long.BYTES];
+		byte[] lengthBytes = new byte[Long.BYTES];
+		buffer.read(authorBytes);
+		buffer.read(lengthBytes);
+		long author = Helper.bytesToLong(authorBytes);
+		long length = Helper.bytesToLong(lengthBytes);
+		byte[] contentBytes = buffer.readNBytes((int) length);
+		//buffer.read(contentBytes);
+		String content = new String(contentBytes, StandardCharsets.UTF_16BE);
+		System.out.println(author);
+		System.out.println(length);
+		System.out.println(content);
 	}
 	public Messages(long channelId, JDA jda) throws IOException, InterruptedException {
 		this.channelId = channelId;
 		this.jda = jda;
-		this.messagesFile = new File("bin" + File.separator + channelId + ".txt");
+		this.messagesFile = new File(SharedConstants.MESSAGES_FOLDER + channelId + ".txt");
 		if (messagesFile.exists())
 		{
 			this.recentId = getMostRecentIdLong();
@@ -54,7 +92,7 @@ public class Messages {
 		}
 		else
 		{
-			//fetchMessages();
+			fetchMessages();
 		}
 	}
 
@@ -76,11 +114,13 @@ public class Messages {
 	 * 
 	 * @param start Starting message id of range, exclusive
 	 * @param end   Ending message id of range, inclusive
-	 * @throws IOException
 	 */
-	public void fetchMessages(long start, long end) throws IOException {
+	public void fetchMessages(long start, long end) {
 		boolean isMessageRetrieved = false;
-		FileWriter writer = new FileWriter(messagesFile, StandardCharsets.UTF_16, true);
+		
+		try (FileOutputStream fos = new FileOutputStream(messagesFile, true);
+				BufferedOutputStream buffer = new BufferedOutputStream(fos)
+				) {
 		TextChannel channel = jda.getTextChannelById(channelId);
 		do
 		{
@@ -89,23 +129,40 @@ public class Messages {
 			for (int i = messages.size() - 1; i >= 0; i--)
 			{
 				Message message = messages.get(i);
-				writer.write(prepareMessage(message));
+				if (!message.getAuthor().isBot()) {
+				byte[] preparedMessage = prepareMessage(message);
+				buffer.write(preparedMessage);
+				}
 				if (message.getIdLong() == end)
 				{
 					isMessageRetrieved = true;
 					break;
 				}
 			}
+			try {
 			start = messages.get(0).getIdLong();
-			writer.flush();
+			} catch (IndexOutOfBoundsException e) {
+				//if it cant get the zeroth message something must be wrong, exit out early
+				Logger logger = LoggerFactory.getLogger("FetchFail");
+				isMessageRetrieved = true;
+				logger.info(channelId + " failed to get zeroth message");
+			}
 
 		} while (!isMessageRetrieved);
-		
-		writer.close();
+		} catch (IOException e)
+		{
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		recentId = end;
 		// update most recent id downloaded
-		RandomAccessFile file = new RandomAccessFile(messagesFile, "rwd");
+		try (RandomAccessFile file = new RandomAccessFile(messagesFile, "rwd")) {
 		file.writeLong(end);
-		file.close();
+		}  catch (IOException e)
+		{
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
 	}
 
 	/**
@@ -115,8 +172,7 @@ public class Messages {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	private void fetchMessages(long end) throws IOException, InterruptedException {
-		long recentId = getMostRecentIdLong();
+	public void fetchMessages(long end) {
 		fetchMessages(recentId, end);
 	}
 
@@ -126,25 +182,31 @@ public class Messages {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	public void fetchMessages() throws IOException, InterruptedException {
+	public void fetchMessages() {
 		TextChannel channel = jda.getTextChannelById(channelId);
 		Message beginning = channel.getHistoryFromBeginning(1).complete().getRetrievedHistory().get(0);
-		FileWriter writer = new FileWriter(messagesFile, StandardCharsets.UTF_16);
-		writer.write(new char[] { 0, 0, 0, 0 }); // leave 64 bits for the most recent id
-		writer.write(prepareMessage(beginning));
+		try (FileOutputStream fos = new FileOutputStream(messagesFile, false)) {
+			fos.write(new byte[Long.BYTES]);
+			fos.write(prepareMessage(beginning));
+		} catch (IOException e)
+		{
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		if (channel.hasLatestMessage()) fetchMessages(beginning.getIdLong(), channel.getLatestMessageIdLong());
 	}
 
-	private char[] prepareMessage(Message message) {
-		char[] messageContent = message.getContentRaw().toCharArray();
-		char[] output = new char[METADATA_LENGTH + messageContent.length];
+	private byte[] prepareMessage(Message message) {
+		byte[] messageContent = message.getContentRaw().getBytes(StandardCharsets.UTF_16BE);
+		byte[] output = new byte[METADATA_LENGTH + messageContent.length];
 		//copy message into output array with empy header
 		System.arraycopy(messageContent, 0, output, METADATA_LENGTH, messageContent.length);
 		//copy author id into output
-		char[] author = Helper.toChars(message.getAuthor().getIdLong());
+		byte[] author = Helper.longToBytes(message.getAuthor().getIdLong());
 		System.arraycopy(author, 0, output, 0, author.length);
 		//copy message length into output
-		output[author.length] = (char)messageContent.length;
+		byte[] length = Helper.longToBytes(messageContent.length);
+		System.arraycopy(length, 0, output, author.length, length.length);
 		return output;
 	}
 
@@ -163,23 +225,27 @@ public class Messages {
 	 * @param record
 	 */
 	public void searchMessages(MessageProcessers processers) {
-		try (InputStream in = new FileInputStream(messagesFile))
+		try (InputStream in = new FileInputStream(messagesFile);
+				BufferedInputStream buffer = new BufferedInputStream(in))
 		{
-			in.skip(Long.BYTES);
-			Scanner reader = new Scanner(in, StandardCharsets.UTF_16);
-			reader.useDelimiter(Character.toString(SEPARATOR));
-			while (reader.hasNext()) {
-			String buffer = reader.next();
-			long id = Helper.fromChars(buffer.substring(0, 5).toCharArray());
-			String content = buffer.substring(5);
-			processers.accept(content, id);
+			buffer.skip(Long.BYTES); //skip most recent id
+			byte[] authorBytes = new byte[Long.BYTES];
+			byte[] lengthBytes = new byte[Long.BYTES];
+			while (buffer.read(authorBytes) > 0) {//stop searching if the end of file has been reached
+				buffer.read(lengthBytes);
+				long author = Helper.bytesToLong(authorBytes);
+				long length = Helper.bytesToLong(lengthBytes);
+				byte[] messageBytes = buffer.readNBytes((int) length);
+				String message = new String(messageBytes, StandardCharsets.UTF_16BE);
+				processers.accept(message, author);
 			}
 		} catch (IOException e)
 		{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}
+		} 
 	}
+	
 	public long getId() {
 		// TODO Auto-generated method stub
 		return channelId;
