@@ -64,7 +64,6 @@ public class Main extends ListenerAdapter {
 		Reactioner mogusReactor = new Reactioner(Pattern.compile("(?:^|\\W)mogus(?:$|\\W)"), "👍");
 		KarmaCounter karmaCounter = new KarmaCounter();
 		E621Counter voreCounter = new E621Counter("vore", Pattern.compile("(?:^|\\W)vore", Pattern.CASE_INSENSITIVE), true, Long.valueOf(args[2]), "vore", jda);
-		Counter counter = new Counter("cunk", Pattern.compile("(?:^|\\W)cunk(?:$|\\W)"), true);
 				
 		//messageProcessers.addCounter("vore", voreCounter);
 		messageProcessers.addReactor(mogusReactor);
