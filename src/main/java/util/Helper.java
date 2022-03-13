@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -83,7 +84,7 @@ public class Helper {
 		return map;
 	}
 
-	public static byte[] longToBytes(long l) {
+	public static byte[] toBytes(long l) {
 	    byte[] result = new byte[Long.BYTES];
 	    for (int i = Long.BYTES - 1; i >= 0; i--) {
 	        result[i] = (byte)(l & 0xFF);
@@ -101,7 +102,7 @@ public class Helper {
 	    return result;
 	}
 	
-	public static byte[] intToBytes(int l) {
+	public static byte[] toBytes(int l) {
 	    byte[] result = new byte[Integer.BYTES];
 	    for (int i = Integer.BYTES - 1; i >= 0; i--) {
 	        result[i] = (byte)(l & 0xFF);

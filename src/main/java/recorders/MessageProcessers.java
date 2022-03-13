@@ -20,6 +20,7 @@ public class MessageProcessers implements Consumer<Message> {
 	private Map<String, Recorder> counters;
 	private List<Consumer<Message>> reactors;
 	private Map<String, ReactorRecord> reactorRecords;
+	public StatCounter statCounter;
 	public KarmaCounter karmaCounter;
 
 	public MessageProcessers() {
@@ -55,7 +56,10 @@ public class MessageProcessers implements Consumer<Message> {
 		for (Consumer<Message> reactorRecord : reactorRecords.values()) {
 			reactorRecord.accept(message);
 		}
+		if (karmaCounter != null)
 		karmaCounter.accept(message);
+		if (statCounter != null)
+		statCounter.accept(message);
 		for (BiPredicate<String, Long> counter : counters.values()) {
 			counter.test(content, id);
 		}

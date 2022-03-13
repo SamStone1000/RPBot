@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageHistory;
+import net.dv8tion.jda.api.entities.MessageReaction;
 import net.dv8tion.jda.api.entities.TextChannel;
 import recorders.MessageProcessers;
 import recorders.Recorder;
@@ -197,17 +198,7 @@ public class Messages {
 	}
 
 	private byte[] prepareMessage(Message message) {
-		byte[] messageContent = message.getContentRaw().getBytes(StandardCharsets.UTF_16BE);
-		byte[] output = new byte[METADATA_LENGTH + messageContent.length];
-		//copy message into output array with empy header
-		System.arraycopy(messageContent, 0, output, METADATA_LENGTH, messageContent.length);
-		//copy author id into output
-		byte[] author = Helper.longToBytes(message.getAuthor().getIdLong());
-		System.arraycopy(author, 0, output, 0, author.length);
-		//copy message length into output
-		byte[] length = Helper.longToBytes(messageContent.length);
-		System.arraycopy(length, 0, output, author.length, length.length);
-		return output;
+		return messageToBytes(message);
 	}
 
 	private long getMostRecentIdLong() throws IOException {
@@ -229,15 +220,12 @@ public class Messages {
 				BufferedInputStream buffer = new BufferedInputStream(in))
 		{
 			buffer.skip(Long.BYTES); //skip most recent id
-			byte[] authorBytes = new byte[Long.BYTES];
-			byte[] lengthBytes = new byte[Long.BYTES];
-			while (buffer.read(authorBytes) > 0) {//stop searching if the end of file has been reached
-				buffer.read(lengthBytes);
-				long author = Helper.bytesToLong(authorBytes);
-				long length = Helper.bytesToLong(lengthBytes);
+			byte[] lengthBytes = new byte[Integer.BYTES];
+			while (buffer.read(lengthBytes) > 0) {//stop searching if the end of file has been reached
+				int length = Helper.bytesToInt(lengthBytes);
 				byte[] messageBytes = buffer.readNBytes((int) length);
-				String message = new String(messageBytes, StandardCharsets.UTF_16BE);
-				processers.accept(message, author);
+				OfflineMessage message = bytesToMessage(messageBytes);
+				processers.accept(message);
 			}
 		} catch (IOException e)
 		{
@@ -249,5 +237,40 @@ public class Messages {
 	public long getId() {
 		// TODO Auto-generated method stub
 		return channelId;
+	}
+	
+	public byte[] messageToBytes(Message message) {
+		byte[] content = message.getContentRaw().getBytes(StandardCharsets.UTF_16BE);
+		byte[] id = Helper.toBytes(message.getIdLong());
+		byte[] authorId =Helper.toBytes(message.getAuthor().getIdLong());
+		//List<MessageReaction> reactions = message.getReactions();
+		
+		int lengthInteger = content.length + id.length + authorId.length;
+		byte[] length = Helper.toBytes(lengthInteger);
+		byte[] messageBytes = new byte[lengthInteger + length.length]; //leave enough room for the length integer
+		int offset = 0; //help keep track of byte offset
+		System.arraycopy(length, 0, messageBytes, offset, length.length); //copy length to start
+		offset += length.length;
+		System.arraycopy(id, 0, messageBytes, offset, id.length); //copy message id in
+		offset += id.length;
+		System.arraycopy(authorId, 0, messageBytes, offset, authorId.length); //copy author id in
+		offset += authorId.length;
+		System.arraycopy(content, 0, messageBytes, offset, content.length); //copy message content in
+		offset += content.length;
+		return messageBytes;
+	}
+	
+	public OfflineMessage bytesToMessage(byte[] bytes) {
+		byte[] id = new byte[Long.BYTES];
+		byte[] authorId = new byte[Long.BYTES];
+		int offset = 0;//skip the length integer
+		System.arraycopy(bytes, offset, id, 0, id.length); //copy id out of bytes
+		offset += id.length;
+		System.arraycopy(bytes, offset, authorId, 0, authorId.length); //copy authorId out of bytes
+		offset += authorId.length;
+		byte[] content = new byte[bytes.length - offset];
+		System.arraycopy(bytes, offset, content, 0, content.length); //copy content out of bytes
+		offset += content.length;
+		return new OfflineMessage(new String(content, StandardCharsets.UTF_16BE), null, false, Helper.bytesToLong(id), Helper.bytesToLong(authorId));
 	}
 }

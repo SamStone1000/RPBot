@@ -125,7 +125,9 @@ public class KarmaCounter {
 
 	public void accept(Message message) {
 		List<Long> users = findKarma(message.getContentRaw(), message.getAuthor().getIdLong());
+		
 		if (!users.isEmpty())
+			if (shouldSave) {
 		{
 			String output = "";
 			Guild guild = message.getGuild();
@@ -134,7 +136,7 @@ public class KarmaCounter {
 			{
 				if (id.equals(lastUser)) continue;
 				lastUser = id;
-				Member user = guild.getMemberById(id);
+				Member user = guild.retrieveMemberById(id).complete();
 				output += user.getEffectiveName() + " now has " + getKarma(id) + " karma, ";
 			}
 			message.reply(output).mentionRepliedUser(false).queue();
@@ -142,6 +144,7 @@ public class KarmaCounter {
 			 * if (emote != null) { message.addReaction(emote).queue(); } else {
 			 * message.addReaction(emoji).queue(); }
 			 */
+		}
 		}
 	}
 
@@ -171,6 +174,11 @@ public class KarmaCounter {
 	public String toString() {
 		String output = "Karma\n";
 		for (Entry<Long, MutableInteger> entry : karmaCounts.entrySet()) {
+			output += entry.toString();
+			output += "\n";
+		}
+		output += "Given\n";
+		for (Entry<Long, MutableInteger> entry : givenCounts.entrySet()) {
 			output += entry.toString();
 			output += "\n";
 		}

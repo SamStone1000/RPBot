@@ -7,10 +7,12 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 
+import javax.imageio.ImageIO;
 import javax.security.auth.login.LoginException;
 
 import org.slf4j.Logger;
@@ -24,12 +26,17 @@ import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageChannel;
+import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.events.Event;
+import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.interaction.command.MessageContextInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.InteractionHook;
+import net.dv8tion.jda.api.interactions.commands.Command.Type;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
@@ -38,10 +45,13 @@ import net.dv8tion.jda.api.requests.restaction.CommandListUpdateAction;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import reactorRecorders.E621Counter;
 import reactorRecorders.KarmaCounter;
+import reactorRecorders.VoreCounter;
 import reactors.Reactioner;
 import record.Channels;
+import record.KickedUserHelper;
 import recorders.Counter;
 import recorders.MessageProcessers;
+import recorders.StatCounter;
 import util.MutableInteger;
 import util.SharedConstants;
 
@@ -50,7 +60,7 @@ public class Main extends ListenerAdapter {
 	MessageProcessers messageProcessers;
 	Channels channels;
 	Logger logger;
-
+	private TreeMap<Long, List<Role>> kickedUserRoles;
 
 	//args[0] should be the bots token, args[1] should be the Guild the bot works in, args[2] is the id of the channel to send vore to
 	public static void main(String[] args) throws LoginException, InterruptedException, IOException, NumberFormatException {
@@ -63,19 +73,22 @@ public class Main extends ListenerAdapter {
 		//Counter voreCounter = new Counter("vore", Pattern.compile("(?:^|\\W)vore"));
 		Reactioner mogusReactor = new Reactioner(Pattern.compile("(?:^|\\W)mogus(?:$|\\W)"), "👍");
 		KarmaCounter karmaCounter = new KarmaCounter();
-		E621Counter voreCounter = new E621Counter("vore", Pattern.compile("(?:^|\\W)vore", Pattern.CASE_INSENSITIVE), true, Long.valueOf(args[2]), "vore", jda);
-				
+		VoreCounter voreCounter = new VoreCounter("vore", Pattern.compile("\\b(vor(?:e[sd]?|ing))\\b", Pattern.CASE_INSENSITIVE), true, Long.valueOf(args[2]), "vore", jda, Pattern.compile("\\b(vor(?:e[sd]?|ing))"));
+		
+		
 		//messageProcessers.addCounter("vore", voreCounter);
 		messageProcessers.addReactor(mogusReactor);
 		messageProcessers.setKarmaCounter(karmaCounter);
 		messageProcessers.addReactorRecord("vore", voreCounter);
 		//messageProcessers.addCounter("cunk", counter);
 		
-		Logger logger = LoggerFactory.getLogger("MainLogger");
+		Logger logger = LoggerFactory.getLogger("Main");
 		
 		jda.awaitReady();
 		Channels channels = new Channels(jda, Long.parseLong(args[1]));
+		KickedUserHelper kickedUserRoles = new KickedUserHelper();
 		jda.addEventListener(new Main(messageProcessers, channels, logger));
+		jda.addEventListener(kickedUserRoles);
 		
 		Guild guild = jda.getGuildById(args[1]);
 		CommandListUpdateAction commands = guild.updateCommands();
@@ -98,12 +111,12 @@ public class Main extends ListenerAdapter {
 				.addOptions(
 						new OptionData(OptionType.USER, "user", "The user to give karma to").setRequired(true)));
 		commands.addCommands(
-				Commands.slash("shutdown", "shuts down bot"));
-		commands.addCommands(
-				Commands.slash("debug", "Collection of commands to help with debugging")
+				Commands.slash("admin", "Collection of commands to help with adminning")
 				.addOptions(
 						new OptionData(OptionType.STRING, "command", "The command to fire").setRequired(true),
 						new OptionData(OptionType.STRING, "arguments", "Arguments to pass to the command")));
+		commands.addCommands(
+				Commands.context(Type.USER, "kick"));
 		//commands.addCommands(Commands.message("Give"));
 		commands.queue();
 	}
@@ -112,6 +125,7 @@ public class Main extends ListenerAdapter {
 		this.messageProcessers = processers;
 		this.channels = channels;
 		this.logger = logger;
+		this.kickedUserRoles = new TreeMap<Long, List<Role>>();
 	}
 
 	@Override
@@ -185,12 +199,7 @@ public class Main extends ListenerAdapter {
 					event.reply("heck no!").queue();
 				}
 				break;
-		case "shutdown":
-			event.reply("ok").complete();
-			if (event.getUser().getIdLong() == 275383746306244608l)
-				System.exit(0);
-			break;
-		case "debug":
+		case "admin":
 			if (event.getUser().getIdLong() == 275383746306244608l) {
 				String command = event.getOption("command").getAsString();
 				switch (command) {
@@ -201,6 +210,41 @@ public class Main extends ListenerAdapter {
 				event.reply("a").setEphemeral(true).queue();
 				event.getChannel().sendMessage(event.getOption("arguments").getAsString()).queue();
 				break;
+				case "stats" :
+					event.reply("alrighty then!").queue();
+					InteractionHook hook = event.getHook();
+					MessageProcessers statTemp = new MessageProcessers();
+					StatCounter statCounter = new StatCounter(false, event.getGuild().getTimeCreated());
+					statTemp.statCounter = statCounter;
+					Thread thread = new Thread(() -> {
+						long start = System.currentTimeMillis();
+						channels.searchChannels(statTemp);
+						long end = System.currentTimeMillis();
+						hook.editOriginal("Searched all channels in "+ (end - start) + " ms").queue();
+						event.getChannel().sendFile(statTemp.statCounter.outputGraph(), "gramph.png").queue();
+						});
+					thread.start();
+					break;
+				case "kickMe" :
+					event.reply("I think its time for you to go.").queue();
+					Guild guild = event.getGuild();
+					User kickedUser = event.getUser();
+					kickedUser.openPrivateChannel().flatMap(channel -> channel.sendMessage("https://discord.gg/BUwvSyND")).complete();
+					kickedUserRoles.put(kickedUser.getIdLong(), guild.getMember(kickedUser).getRoles());
+					guild.kick(guild.getMember(event.getUser())).queue();
+					break;
+				case "tempBan" :
+					KickedUserHelper.tempBan(event.getMember(), "just didn't like them", Long.valueOf(event.getOption("arguments").getAsString()));
+				case "giveRole":
+					Role role = event.getGuild().getRoleById(event.getOption("arguments").getAsString());
+					event.getGuild().addRoleToMember(event.getMember(), role).queue();
+					event.reply("alrighty then!").queue();
+					break;
+				case "shutdown":
+					event.reply("ok").complete();
+					if (event.getUser().getIdLong() == 275383746306244608l)
+						System.exit(0);
+					break;
 				}
 			} else {
 				event.reply("uh no");
@@ -230,9 +274,16 @@ public class Main extends ListenerAdapter {
 		thread.start();
 	}
 
-	@Override
-	public void onMessageContextInteraction(MessageContextInteractionEvent event) {
-		event.reply("foo").setEphemeral(true).queue();
-		event.getTarget().reply("cunk").queue();
-	}
+//	@Override
+//	public void onGuildMemberJoin(GuildMemberJoinEvent event) {
+//		Member member = event.getMember();
+//		if (kickedUserRoles.containsKey(member.getIdLong())) {
+//			Guild guild = event.getGuild();
+//			List<Role> roles = kickedUserRoles.get(member.getIdLong());
+//			guild.modifyMemberRoles(member, roles).queue();
+//			kickedUserRoles.remove(member.getIdLong());
+//		}
+//	}
+	
+	
 }

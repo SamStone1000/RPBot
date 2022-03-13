@@ -22,12 +22,14 @@ public class E621Counter extends Counter implements ReactorRecord {
 	private long channelId;
 	private String searchTerms;
 	private JDA jda;
+	protected Pattern triggerTerm;
 
-	public E621Counter(String term, Pattern pattern, boolean shouldEffect, long channelId, String searchTerms, JDA jda) {
+	public E621Counter(String term, Pattern pattern, boolean shouldEffect, long channelId, String searchTerms, JDA jda, Pattern triggerTerm) {
 		super(term, pattern, shouldEffect);
 		this.channelId = channelId;
 		this.searchTerms = searchTerms;
 		this.jda = jda;
+		this.triggerTerm = triggerTerm;
 	}
 
 	public E621Counter(Pattern pattern, Map<Long, MutableInteger> counts, File file, boolean shouldAffect, long channelId, String searchTerms, JDA jda, boolean shouldResetCounts) {
@@ -39,9 +41,18 @@ public class E621Counter extends Counter implements ReactorRecord {
 
 	@Override
 	public void accept(Message message) {
-		if (super.test(message.getContentRaw(), message.getAuthor().getIdLong())) {
-			if (shouldAffect) {
-			try {
+		super.test(message.getContentRaw(), message.getAuthor().getIdLong());
+		if (shouldAffect)
+			if (triggerTerm.matcher(message.getContentRaw()).matches())
+				sendImage();
+		}
+		
+	public ReactorRecord copyOf(boolean shouldResetCounts, boolean shouldAffect) {
+		return new E621Counter(pattern, counts, file, shouldAffect, channelId, searchTerms, jda, shouldResetCounts);
+	}
+	
+	protected void sendImage() {
+		try {
 			HttpURLConnection connection = (HttpURLConnection) new URL("https://e621.net/posts.json?tags="+searchTerms+"+order:random+limit:1").openConnection();
 			connection.setRequestMethod("GET");
 			connection.setRequestProperty("User-Agent", "RPBot/2.0 by SamStone");
@@ -64,13 +75,6 @@ public class E621Counter extends Counter implements ReactorRecord {
 			catch (Exception e) {
 				e.printStackTrace();
 			}
-
-		}
-		}
-		
-	}
-	public ReactorRecord copyOf(boolean shouldResetCounts, boolean shouldAffect) {
-		return new E621Counter(pattern, counts, file, shouldAffect, channelId, searchTerms, jda, shouldResetCounts);
 	}
 
 
