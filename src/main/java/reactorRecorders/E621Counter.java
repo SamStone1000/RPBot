@@ -9,6 +9,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import org.slf4j.LoggerFactory;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import net.dv8tion.jda.api.JDA;
@@ -53,6 +55,7 @@ public class E621Counter extends Counter implements ReactorRecord {
 	
 	protected void sendImage() {
 		try {
+			LoggerFactory.getLogger("E621").debug("Sending Image");
 			HttpURLConnection connection = (HttpURLConnection) new URL("https://e621.net/posts.json?tags="+searchTerms+"+order:random+limit:1").openConnection();
 			connection.setRequestMethod("GET");
 			connection.setRequestProperty("User-Agent", "RPBot/2.0 by SamStone");

@@ -3,6 +3,7 @@ package reactorRecorders;
 import java.io.File;
 import java.math.BigInteger;
 import java.util.Map;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import net.dv8tion.jda.api.JDA;
@@ -10,6 +11,7 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import record.KickedUserHelper;
 import util.MutableInteger;
+import util.SharedConstants;
 
 public class VoreCounter extends E621Counter {
 
@@ -40,8 +42,13 @@ public class VoreCounter extends E621Counter {
 			}
 		}
 		if (shouldAffect) {
-			if (triggerTerm.matcher(message.getContentRaw()).matches())
-				sendImage();
+			//SharedConstants.GLOBAL_LOGGER.debug("1");
+			//SharedConstants.GLOBAL_LOGGER.debug(triggerTerm.toString());
+			Matcher matcher = triggerTerm.matcher(message.getContentRaw());
+			if (matcher.find()) {
+				//SharedConstants.GLOBAL_LOGGER.debug("2");
+				super.sendImage();
+			}
 		}
 	}
 

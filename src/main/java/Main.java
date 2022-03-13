@@ -73,7 +73,7 @@ public class Main extends ListenerAdapter {
 		//Counter voreCounter = new Counter("vore", Pattern.compile("(?:^|\\W)vore"));
 		Reactioner mogusReactor = new Reactioner(Pattern.compile("(?:^|\\W)mogus(?:$|\\W)"), "👍");
 		KarmaCounter karmaCounter = new KarmaCounter();
-		VoreCounter voreCounter = new VoreCounter("vore", Pattern.compile("\\b(vor(?:e[sd]?|ing))\\b", Pattern.CASE_INSENSITIVE), true, Long.valueOf(args[2]), "vore", jda, Pattern.compile("\\b(vor(?:e[sd]?|ing))"));
+		VoreCounter voreCounter = new VoreCounter("vore", Pattern.compile("\\b(vor(?:e[sd]?|ing))\\b", Pattern.CASE_INSENSITIVE), true, Long.valueOf(args[2]), "vore", jda, Pattern.compile("(vor(?:e[sd]?|ing))", Pattern.CASE_INSENSITIVE));
 		
 		
 		//messageProcessers.addCounter("vore", voreCounter);
