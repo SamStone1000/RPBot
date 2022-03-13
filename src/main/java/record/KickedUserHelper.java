@@ -29,6 +29,7 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.PrivateChannel;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.guild.GuildUnbanEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
@@ -248,10 +249,11 @@ File file = new File(SharedConstants.ROLES_FOLDER + member.getId() + ".roles");
 			consequenceMeter++;
 		if (member.getIdLong() == 275383746306244608l)
 			consequenceMeter = -1;
-		BigInteger banDuration;
+		final BigInteger banDuration;
 		switch (consequenceMeter) {
 		case 0:
 			banDuration = BigInteger.valueOf(voreCount);
+			break;
 		case 1:
 			banDuration = BigInteger.valueOf(voreCount).pow(2);
 			break;
@@ -265,6 +267,8 @@ File file = new File(SharedConstants.ROLES_FOLDER + member.getId() + ".roles");
 		
 		if (!banDuration.equals(BigInteger.ZERO)) {
 			BigInteger milliBan = banDuration.multiply(BigInteger.valueOf(60 * 1000)).add(BigInteger.valueOf(System.currentTimeMillis())); //convert from minutes to milliseconds
+			PrivateChannel channel = member.getUser().openPrivateChannel().complete();
+				channel.sendMessage("You have been banned for "+banDuration+" minutes\nhttps://discord.gg/rbeWFEsxhP").complete();
 			banUser(member, "nom");
 			if (milliBan.bitLength() < 64) {//if larger then max long, just gonna forget about it instead of keeping track of it
 				Date date = new Date(milliBan.longValue());
