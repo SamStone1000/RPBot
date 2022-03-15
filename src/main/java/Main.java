@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
@@ -89,6 +90,8 @@ public class Main extends ListenerAdapter {
 		KickedUserHelper kickedUserRoles = new KickedUserHelper();
 		jda.addEventListener(new Main(messageProcessers, channels, logger));
 		jda.addEventListener(kickedUserRoles);
+		
+		jda.getPresence().setActivity(Activity.watching("for vore"));
 		
 		Guild guild = jda.getGuildById(args[1]);
 		CommandListUpdateAction commands = guild.updateCommands();
@@ -273,7 +276,7 @@ public class Main extends ListenerAdapter {
 		});
 		thread.start();
 	}
-
+	
 //	@Override
 //	public void onGuildMemberJoin(GuildMemberJoinEvent event) {
 //		Member member = event.getMember();
@@ -284,6 +287,8 @@ public class Main extends ListenerAdapter {
 //			kickedUserRoles.remove(member.getIdLong());
 //		}
 //	}
+	
+	
 	
 	
 }
