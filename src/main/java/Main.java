@@ -5,16 +5,33 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.text.ParseException;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import javax.imageio.ImageIO;
 import javax.security.auth.login.LoginException;
 
+import org.quartz.CronExpression;
+import org.quartz.CronScheduleBuilder;
+import org.quartz.JobBuilder;
+import org.quartz.JobDataMap;
+import org.quartz.JobDetail;
+import org.quartz.JobExecutionException;
+import org.quartz.ScheduleBuilder;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
+import org.quartz.SimpleTrigger;
+import org.quartz.Trigger;
+import org.quartz.TriggerBuilder;
+import org.quartz.impl.StdSchedulerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +64,9 @@ import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import reactorRecorders.E621Counter;
 import reactorRecorders.KarmaCounter;
 import reactorRecorders.VoreCounter;
+import reactors.CringeDLB;
 import reactors.Reactioner;
+import reactors.RecurringMessage;
 import record.Channels;
 import record.KickedUserHelper;
 import recorders.Counter;
@@ -62,9 +81,10 @@ public class Main extends ListenerAdapter {
 	Channels channels;
 	Logger logger;
 	private TreeMap<Long, List<Role>> kickedUserRoles;
+	private Scheduler scheduler;
 
-	//args[0] should be the bots token, args[1] should be the Guild the bot works in, args[2] is the id of the channel to send vore to
-	public static void main(String[] args) throws LoginException, InterruptedException, IOException, NumberFormatException {
+	//args[0] should be the bots token, args[1] should be the Guild the bot works in, args[2] is the id of the channel to send vore to, args[3] is the id to send freefall reminders to
+	public static void main(String[] args) throws LoginException, InterruptedException, IOException, NumberFormatException, SchedulerException {
 		JDABuilder builder = JDABuilder.createLight(args[0], GatewayIntent.GUILD_MESSAGES, GatewayIntent.GUILD_MEMBERS);
 		//builder.addEventListeners(new Main());
 		builder.setMemberCachePolicy(MemberCachePolicy.ALL);
@@ -88,10 +108,40 @@ public class Main extends ListenerAdapter {
 		jda.awaitReady();
 		Channels channels = new Channels(jda, Long.parseLong(args[1]));
 		KickedUserHelper kickedUserRoles = new KickedUserHelper();
-		jda.addEventListener(new Main(messageProcessers, channels, logger));
+		Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
+		jda.addEventListener(new Main(messageProcessers, channels, logger, scheduler));
 		jda.addEventListener(kickedUserRoles);
 		
-		jda.getPresence().setActivity(Activity.watching("for vore"));
+		//welcome to jank city pop. 1
+		SharedConstants.jda = jda;
+		
+		//jda.getPresence().setActivity(Activity.watching("for vore"));
+		
+		
+		
+		JobDetail freefallDetail = JobBuilder.newJob(RecurringMessage.class)
+				.withIdentity("FreeFall Reminder", "Recurring Messages")
+				.usingJobData("message", "Another 3 panels of Freefall have been added.")
+				.usingJobData("channel", Long.valueOf(args[3]))
+				.build();
+		CronScheduleBuilder schedule = CronScheduleBuilder.cronSchedule("0 0 0 ? * MON,WED,FRI").inTimeZone(TimeZone.getTimeZone("CST"));
+		Trigger freefallTrigger = TriggerBuilder.newTrigger()
+				.withSchedule(schedule)
+				.build();
+		
+		JobDetail DLBDetail = JobBuilder.newJob(CringeDLB.class)
+				.withIdentity("Making sure DLB works", "Conditional Messages")
+				.build();
+		CronScheduleBuilder DLBSchedule = CronScheduleBuilder.cronSchedule("0 30 15 * * ?").inTimeZone(TimeZone.getTimeZone(ZoneOffset.of("-4")));
+		Trigger DLBTrigger = TriggerBuilder.newTrigger()
+				.withSchedule(DLBSchedule)
+				.build();
+		
+		scheduler.scheduleJob(freefallDetail, freefallTrigger);
+		scheduler.scheduleJob(DLBDetail, DLBTrigger);
+		
+		scheduler.start();
+		
 		
 		Guild guild = jda.getGuildById(args[1]);
 		CommandListUpdateAction commands = guild.updateCommands();
@@ -122,12 +172,14 @@ public class Main extends ListenerAdapter {
 				Commands.context(Type.USER, "kick"));
 		//commands.addCommands(Commands.message("Give"));
 		commands.queue();
+		//new CringeDLB().execute(null);
 	}
 	
-	public Main(MessageProcessers processers, Channels channels, Logger logger) {
+	public Main(MessageProcessers processers, Channels channels, Logger logger, Scheduler scheduler) {
 		this.messageProcessers = processers;
 		this.channels = channels;
 		this.logger = logger;
+		this.scheduler = scheduler;
 		this.kickedUserRoles = new TreeMap<Long, List<Role>>();
 	}
 
@@ -245,8 +297,26 @@ public class Main extends ListenerAdapter {
 					break;
 				case "shutdown":
 					event.reply("ok").complete();
-					if (event.getUser().getIdLong() == 275383746306244608l)
+					if (event.getUser().getIdLong() == 275383746306244608l) try
+					{
+						scheduler.shutdown();
+					} catch (SchedulerException e)
+					{
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 						System.exit(0);
+					break;
+				case "trollDLB":
+					event.reply("ok").queue();
+					try
+					{
+						new CringeDLB().execute(null);
+					} catch (JobExecutionException e)
+					{
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 					break;
 				}
 			} else {

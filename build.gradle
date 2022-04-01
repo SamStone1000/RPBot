@@ -31,6 +31,8 @@ dependencies {
 	implementation 'ch.qos.logback:logback-classic:1.2.8'
 	implementation("net.dv8tion:JDA:5.0.0-alpha.5")
 	implementation("com.fasterxml.jackson.core:jackson-databind:2.10.1")
+	implementation("org.jfree:jfreechart:1.5.3")
+	implementation("org.quartz-scheduler:quartz:2.3.0")
 }
 
 application {
