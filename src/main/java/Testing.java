@@ -8,7 +8,7 @@ import java.util.TimeZone;
 
 import net.dv8tion.jda.api.utils.TimeUtil;
 
-public class testing {
+public class Testing {
 
 	public static void main(String[] args) throws IOException {
 		System.out.println(ZoneId.systemDefault().getRules());
