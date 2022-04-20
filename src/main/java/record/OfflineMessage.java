@@ -9,7 +9,7 @@ public class OfflineMessage extends AbstractMessage {
 
 	long id;
 	User author;
-	
+
 	public OfflineMessage(String content, String nonce, boolean isTTS, long id, long authorId) {
 		super(content, nonce, isTTS);
 		this.id = id;
@@ -23,18 +23,14 @@ public class OfflineMessage extends AbstractMessage {
 	}
 
 	@Override
-	public long getIdLong() {
-		return id;
-	}
+	public long getIdLong() { return id; }
 
 	@Override
 	protected void unsupported() {
-		
+
 	}
-	
+
 	@Override
-	public User getAuthor() {
-		return author;
-	}
+	public User getAuthor() { return author; }
 
 }

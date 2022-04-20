@@ -29,52 +29,56 @@ import util.MutableInteger;
 public class StatCounter {
 
 	private boolean shouldAffect;
-	private NavigableMap<OffsetDateTime, MutableInteger> count; //messages sent a month
+	private NavigableMap<OffsetDateTime, MutableInteger> count; // messages sent a month
 	private int currentCount;
 	private OffsetDateTime creationTime;
-	//private Pattern pattern = Pattern.compile(")
-	
+	// private Pattern pattern = Pattern.compile(")
+
 	public StatCounter(boolean shouldAffect, OffsetDateTime creation) {
 		this.shouldAffect = shouldAffect;
 		this.count = new TreeMap<OffsetDateTime, MutableInteger>();
 		OffsetDateTime now = OffsetDateTime.now();
-		while(creation.isBefore(now)) {
+		while (creation.isBefore(now))
+		{
 			count.put(creation, new MutableInteger(0));
 			creation = creation.plusDays(1);
 		}
 	}
-	
+
 	public void accept(Message message) {
 		OffsetDateTime messageTime = TimeUtil.getTimeCreated(message.getIdLong());
 		count.floorEntry(messageTime).getValue().increment();
 	}
-	
+
 	@Override
 	public String toString() {
 		String output = "";
-		for (Entry<OffsetDateTime, MutableInteger> entry : count.entrySet()) {
+		for (Entry<OffsetDateTime, MutableInteger> entry : count.entrySet())
+		{
 			output += entry.toString();
 			output += "\n";
 		}
 		return output;
 	}
-	
+
 	public byte[] outputGraph() {
 		Logger logger = LoggerFactory.getLogger("Graphing");
 		DefaultXYDataset data = new DefaultXYDataset();
 		double[][] dataArray = new double[2][count.size()];
 		int i = 0;
-		for (Entry<OffsetDateTime, MutableInteger> entry : count.entrySet()) {
+		for (Entry<OffsetDateTime, MutableInteger> entry : count.entrySet())
+		{
 			dataArray[0][i] = entry.getKey().toEpochSecond();
 			dataArray[1][i] = entry.getValue().doubleValue();
 			i++;
-			//logger.debug(Integer.toString(i));
+			// logger.debug(Integer.toString(i));
 		}
 		data.addSeries("messagesOverTime", dataArray);
-		JFreeChart chart = ChartFactory.createXYLineChart("Janky Hack", "Seconds since Epoch", "Messages Sent that Month", data);
+		JFreeChart chart = ChartFactory
+				.createXYLineChart("Janky Hack", "Seconds since Epoch", "Messages Sent that Month", data);
 		chart.removeLegend();
 		BufferedImage image = chart.createBufferedImage(1024, 512);
-		
+
 		ByteArrayOutputStream BAOS = new ByteArrayOutputStream();
 		try
 		{

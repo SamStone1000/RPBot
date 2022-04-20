@@ -15,38 +15,47 @@ import util.SharedConstants;
 
 public class VoreCounter extends E621Counter {
 
-	public VoreCounter(String term, Pattern pattern, boolean shouldEffect, long channelId, String searchTerms,
-			JDA jda, Pattern triggerTerm) {
+	public VoreCounter(
+			String term, Pattern pattern, boolean shouldEffect, long channelId, String searchTerms, JDA jda,
+			Pattern triggerTerm
+	) {
 		super(term, pattern, shouldEffect, channelId, searchTerms, jda, triggerTerm);
 		// TODO Auto-generated constructor stub
 	}
 
-	public VoreCounter(Pattern pattern, Map<Long, MutableInteger> counts, File file, boolean shouldAffect,
-			long channelId, String searchTerms, JDA jda, boolean shouldResetCounts) {
+	public VoreCounter(
+			Pattern pattern, Map<Long, MutableInteger> counts, File file, boolean shouldAffect, long channelId,
+			String searchTerms, JDA jda, boolean shouldResetCounts
+	) {
 		super(pattern, counts, file, shouldAffect, channelId, searchTerms, jda, shouldResetCounts);
 		// TODO Auto-generated constructor stub
 	}
-	
+
 	@Override
 	public void accept(Message message) {
-		if (super.test(message.getContentRaw(), message.getAuthor().getIdLong())) {
-			if (shouldAffect) {
+		if (super.test(message.getContentRaw(), message.getAuthor().getIdLong()))
+		{
+			if (shouldAffect)
+			{
 				Member author = message.getMember();
 				BigInteger duration = KickedUserHelper.kickForVore(author, super.getCount(author.getIdLong()));
-				if (duration.compareTo(BigInteger.ZERO) != 0) {
-				String output = author.getEffectiveName() + " has been banned for ";
-				output += duration.toString();
-				output += " minutes";
-				message.reply(output).queue();
+				if (duration.compareTo(BigInteger.ZERO) != 0)
+				{
+					String output = author.getEffectiveName() + " has been banned for ";
+					output += duration.toString();
+					output += " minutes";
+					message.reply(output).queue();
 				}
 			}
 		}
-		if (shouldAffect) {
-			//SharedConstants.GLOBAL_LOGGER.debug("1");
-			//SharedConstants.GLOBAL_LOGGER.debug(triggerTerm.toString());
+		if (shouldAffect)
+		{
+			// SharedConstants.GLOBAL_LOGGER.debug("1");
+			// SharedConstants.GLOBAL_LOGGER.debug(triggerTerm.toString());
 			Matcher matcher = triggerTerm.matcher(message.getContentRaw());
-			if (matcher.find()) {
-				//SharedConstants.GLOBAL_LOGGER.debug("2");
+			if (matcher.find())
+			{
+				// SharedConstants.GLOBAL_LOGGER.debug("2");
 				super.sendImage();
 			}
 		}

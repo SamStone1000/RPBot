@@ -44,19 +44,19 @@ public class Messages {
 	private File messagesFile;
 	private long recentId;
 	private JDA jda;
-	//measured in characters, length of metadeta before each message on disk
+	// measured in characters, length of metadeta before each message on disk
 	private static int METADATA_LENGTH = Long.BYTES + Long.BYTES;
 
 	public static final char SEPARATOR = 0xFFFF;
 
 	public static void main(String[] args) throws IOException {
-		//FileOutputStream fos = new FileOutputStream(new File("h"), false);
-		//BufferedOutputStream buffer = new BufferedOutputStream(fos);
-		//buffer.write(Helper.longToBytes(123000l));
-		//buffer.close();
+		// FileOutputStream fos = new FileOutputStream(new File("h"), false);
+		// BufferedOutputStream buffer = new BufferedOutputStream(fos);
+		// buffer.write(Helper.longToBytes(123000l));
+		// buffer.close();
 		InputStream in = new FileInputStream(new File("h"));
 		BufferedInputStream buffer = new BufferedInputStream(in);
-		
+
 //		byte[] messageContent = new String("cunk").getBytes(StandardCharsets.UTF_16BE);
 //		byte[] output = new byte[METADATA_LENGTH + messageContent.length];
 //		//copy message into output array with empy header
@@ -76,12 +76,13 @@ public class Messages {
 		long author = Helper.bytesToLong(authorBytes);
 		long length = Helper.bytesToLong(lengthBytes);
 		byte[] contentBytes = buffer.readNBytes((int) length);
-		//buffer.read(contentBytes);
+		// buffer.read(contentBytes);
 		String content = new String(contentBytes, StandardCharsets.UTF_16BE);
 		System.out.println(author);
 		System.out.println(length);
 		System.out.println(content);
 	}
+
 	public Messages(long channelId, JDA jda) throws IOException, InterruptedException {
 		this.channelId = channelId;
 		this.jda = jda;
@@ -90,8 +91,7 @@ public class Messages {
 		{
 			this.recentId = getMostRecentIdLong();
 			sync();
-		}
-		else
+		} else
 		{
 			fetchMessages();
 		}
@@ -100,9 +100,12 @@ public class Messages {
 	public boolean sync() throws IOException {
 		long currentId;
 		TextChannel channel = jda.getTextChannelById(channelId);
-		if (channel.hasLatestMessage()) currentId = channel.getLatestMessageIdLong();
-		else return false;
-		if (recentId == currentId) return true;
+		if (channel.hasLatestMessage())
+			currentId = channel.getLatestMessageIdLong();
+		else
+			return false;
+		if (recentId == currentId)
+			return true;
 		else
 		{
 			fetchMessages(recentId, currentId);
@@ -118,38 +121,41 @@ public class Messages {
 	 */
 	public void fetchMessages(long start, long end) {
 		boolean isMessageRetrieved = false;
-		
-		try (FileOutputStream fos = new FileOutputStream(messagesFile, true);
-				BufferedOutputStream buffer = new BufferedOutputStream(fos)
-				) {
-		TextChannel channel = jda.getTextChannelById(channelId);
-		do
-		{
-			MessageHistory history = channel.getHistoryAfter(start, 100).complete();
-			List<Message> messages = history.getRetrievedHistory();
-			for (int i = messages.size() - 1; i >= 0; i--)
-			{
-				Message message = messages.get(i);
-				if (!message.getAuthor().isBot()) {
-				byte[] preparedMessage = prepareMessage(message);
-				buffer.write(preparedMessage);
-				}
-				if (message.getIdLong() == end)
-				{
-					isMessageRetrieved = true;
-					break;
-				}
-			}
-			try {
-			start = messages.get(0).getIdLong();
-			} catch (IndexOutOfBoundsException e) {
-				//if it cant get the zeroth message something must be wrong, exit out early
-				Logger logger = LoggerFactory.getLogger("FetchFail");
-				isMessageRetrieved = true;
-				logger.info(channelId + " failed to get zeroth message");
-			}
 
-		} while (!isMessageRetrieved);
+		try (FileOutputStream fos = new FileOutputStream(messagesFile, true);
+				BufferedOutputStream buffer = new BufferedOutputStream(fos))
+		{
+			TextChannel channel = jda.getTextChannelById(channelId);
+			do
+			{
+				MessageHistory history = channel.getHistoryAfter(start, 100).complete();
+				List<Message> messages = history.getRetrievedHistory();
+				for (int i = messages.size() - 1; i >= 0; i--)
+				{
+					Message message = messages.get(i);
+					if (!message.getAuthor().isBot())
+					{
+						byte[] preparedMessage = prepareMessage(message);
+						buffer.write(preparedMessage);
+					}
+					if (message.getIdLong() == end)
+					{
+						isMessageRetrieved = true;
+						break;
+					}
+				}
+				try
+				{
+					start = messages.get(0).getIdLong();
+				} catch (IndexOutOfBoundsException e)
+				{
+					// if it cant get the zeroth message something must be wrong, exit out early
+					Logger logger = LoggerFactory.getLogger("FetchFail");
+					isMessageRetrieved = true;
+					logger.info(channelId + " failed to get zeroth message");
+				}
+
+			} while (!isMessageRetrieved);
 		} catch (IOException e)
 		{
 			// TODO Auto-generated catch block
@@ -157,13 +163,14 @@ public class Messages {
 		}
 		recentId = end;
 		// update most recent id downloaded
-		try (RandomAccessFile file = new RandomAccessFile(messagesFile, "rwd")) {
-		file.writeLong(end);
-		}  catch (IOException e)
+		try (RandomAccessFile file = new RandomAccessFile(messagesFile, "rwd"))
+		{
+			file.writeLong(end);
+		} catch (IOException e)
 		{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} 
+		}
 	}
 
 	/**
@@ -173,9 +180,7 @@ public class Messages {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	public void fetchMessages(long end) {
-		fetchMessages(recentId, end);
-	}
+	public void fetchMessages(long end) { fetchMessages(recentId, end); }
 
 	/**
 	 * Wipes existing file and rewrites from beginning to end of channel
@@ -186,7 +191,8 @@ public class Messages {
 	public void fetchMessages() {
 		TextChannel channel = jda.getTextChannelById(channelId);
 		Message beginning = channel.getHistoryFromBeginning(1).complete().getRetrievedHistory().get(0);
-		try (FileOutputStream fos = new FileOutputStream(messagesFile, false)) {
+		try (FileOutputStream fos = new FileOutputStream(messagesFile, false))
+		{
 			fos.write(new byte[Long.BYTES]);
 			fos.write(prepareMessage(beginning));
 		} catch (IOException e)
@@ -194,12 +200,11 @@ public class Messages {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		if (channel.hasLatestMessage()) fetchMessages(beginning.getIdLong(), channel.getLatestMessageIdLong());
+		if (channel.hasLatestMessage())
+			fetchMessages(beginning.getIdLong(), channel.getLatestMessageIdLong());
 	}
 
-	private byte[] prepareMessage(Message message) {
-		return messageToBytes(message);
-	}
+	private byte[] prepareMessage(Message message) { return messageToBytes(message); }
 
 	private long getMostRecentIdLong() throws IOException {
 		RandomAccessFile randomMessages = new RandomAccessFile(messagesFile, "r");
@@ -219,9 +224,10 @@ public class Messages {
 		try (InputStream in = new FileInputStream(messagesFile);
 				BufferedInputStream buffer = new BufferedInputStream(in))
 		{
-			buffer.skip(Long.BYTES); //skip most recent id
+			buffer.skip(Long.BYTES); // skip most recent id
 			byte[] lengthBytes = new byte[Integer.BYTES];
-			while (buffer.read(lengthBytes) > 0) {//stop searching if the end of file has been reached
+			while (buffer.read(lengthBytes) > 0)
+			{// stop searching if the end of file has been reached
 				int length = Helper.bytesToInt(lengthBytes);
 				byte[] messageBytes = buffer.readNBytes((int) length);
 				OfflineMessage message = bytesToMessage(messageBytes);
@@ -231,46 +237,49 @@ public class Messages {
 		{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} 
+		}
 	}
-	
+
 	public long getId() {
 		// TODO Auto-generated method stub
 		return channelId;
 	}
-	
+
 	public byte[] messageToBytes(Message message) {
 		byte[] content = message.getContentRaw().getBytes(StandardCharsets.UTF_16BE);
 		byte[] id = Helper.toBytes(message.getIdLong());
-		byte[] authorId =Helper.toBytes(message.getAuthor().getIdLong());
-		//List<MessageReaction> reactions = message.getReactions();
-		
+		byte[] authorId = Helper.toBytes(message.getAuthor().getIdLong());
+		// List<MessageReaction> reactions = message.getReactions();
+
 		int lengthInteger = content.length + id.length + authorId.length;
 		byte[] length = Helper.toBytes(lengthInteger);
-		byte[] messageBytes = new byte[lengthInteger + length.length]; //leave enough room for the length integer
-		int offset = 0; //help keep track of byte offset
-		System.arraycopy(length, 0, messageBytes, offset, length.length); //copy length to start
+		byte[] messageBytes = new byte[lengthInteger + length.length]; // leave enough room for the length integer
+		int offset = 0; // help keep track of byte offset
+		System.arraycopy(length, 0, messageBytes, offset, length.length); // copy length to start
 		offset += length.length;
-		System.arraycopy(id, 0, messageBytes, offset, id.length); //copy message id in
+		System.arraycopy(id, 0, messageBytes, offset, id.length); // copy message id in
 		offset += id.length;
-		System.arraycopy(authorId, 0, messageBytes, offset, authorId.length); //copy author id in
+		System.arraycopy(authorId, 0, messageBytes, offset, authorId.length); // copy author id in
 		offset += authorId.length;
-		System.arraycopy(content, 0, messageBytes, offset, content.length); //copy message content in
+		System.arraycopy(content, 0, messageBytes, offset, content.length); // copy message content in
 		offset += content.length;
 		return messageBytes;
 	}
-	
+
 	public OfflineMessage bytesToMessage(byte[] bytes) {
 		byte[] id = new byte[Long.BYTES];
 		byte[] authorId = new byte[Long.BYTES];
-		int offset = 0;//skip the length integer
-		System.arraycopy(bytes, offset, id, 0, id.length); //copy id out of bytes
+		int offset = 0;// skip the length integer
+		System.arraycopy(bytes, offset, id, 0, id.length); // copy id out of bytes
 		offset += id.length;
-		System.arraycopy(bytes, offset, authorId, 0, authorId.length); //copy authorId out of bytes
+		System.arraycopy(bytes, offset, authorId, 0, authorId.length); // copy authorId out of bytes
 		offset += authorId.length;
 		byte[] content = new byte[bytes.length - offset];
-		System.arraycopy(bytes, offset, content, 0, content.length); //copy content out of bytes
+		System.arraycopy(bytes, offset, content, 0, content.length); // copy content out of bytes
 		offset += content.length;
-		return new OfflineMessage(new String(content, StandardCharsets.UTF_16BE), null, false, Helper.bytesToLong(id), Helper.bytesToLong(authorId));
+		return new OfflineMessage(
+				new String(content, StandardCharsets.UTF_16BE), null, false, Helper.bytesToLong(id),
+				Helper.bytesToLong(authorId)
+		);
 	}
 }
