@@ -99,20 +99,27 @@ public class KarmaCounter {
 	public void accept(Message message) {
 		List<Long> receivingUsers = findKarma(message.getContentRaw(), message.getAuthor().getIdLong());
 
-		Message referenced = message.getReferencedMessage();
-		long receiver = referenced.getAuthor().getIdLong();
-
-		if (referenced != null)
-		{
+		
+		//doing it like this insures that we only make a call to discord only if the message is actually trying to add or subtract karma
 			if (message.getContentRaw().startsWith("++"))
 			{
+				Message referenced = message.getReferencedMessage();
+				long receiver = referenced.getAuthor().getIdLong();
 				if (referenced != null)
 				{
 					receivingUsers.add(receiver);
 					giveKarma(receiver, message.getAuthor().getIdLong(), 1);
 				}
+			} else if (message.getContentRaw().startsWith("--")) {
+				Message referenced = message.getReferencedMessage();
+				long receiver = referenced.getAuthor().getIdLong();
+				
+				if (referenced != null)
+				{
+				receivingUsers.add(receiver);
+				giveKarma(receiver, message.getAuthor().getIdLong(), -1);
+				}
 			}
-		}
 
 		if (!receivingUsers.isEmpty())
 			if (shouldSave)
