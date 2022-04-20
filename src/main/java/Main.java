@@ -6,6 +6,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.ParseException;
+import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -37,6 +38,7 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
@@ -64,14 +66,14 @@ import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import reactorRecorders.E621Counter;
 import reactorRecorders.KarmaCounter;
 import reactorRecorders.VoreCounter;
-import reactors.CringeDLB;
 import reactors.Reactioner;
-import reactors.RecurringMessage;
 import record.Channels;
 import record.KickedUserHelper;
 import recorders.Counter;
 import recorders.MessageProcessers;
 import recorders.StatCounter;
+import scheduled.CringeDLB;
+import scheduled.RecurringMessage;
 import util.MutableInteger;
 import util.SharedConstants;
 
@@ -307,16 +309,40 @@ public class Main extends ListenerAdapter {
 					}
 						System.exit(0);
 					break;
-				case "trollDLB":
-					event.reply("ok").queue();
-					try
-					{
-						new CringeDLB().execute(null);
-					} catch (JobExecutionException e)
-					{
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
+				case "sendEmbed":
+					EmbedBuilder embedBuilder = new EmbedBuilder();
+					embedBuilder.setAuthor(event.getMember().getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl());
+					//embedBuilder.setTitle("<song name>");
+					embedBuilder.setDescription("My neighbors ask me why I'm limping down the way\r\n"
+							+ "And who that fellow was who came by yesterday\r\n"
+							+ "I quickly turn my face before I start to blush\r\n"
+							+ "'Cause frankly there is nothing I can say\r\n"
+							+ "I've always had a thing for pushing the extremes\r\n"
+							+ "And I've just got a thing you won't find in the magazines\r\n"
+							+ "This molded silicone has got me begging please\r\n"
+							+ "Give me more of what I really need\r\n"
+							+ "'Cause there is no cock like horse cock\r\n"
+							+ "Send your asshole into shock\r\n"
+							+ "You need horse cock of course-cock\r\n"
+							+ "Grab the lube and slam the day away\r\n"
+							+ "My shaft is quivering, my balls are turning blue and\r\n"
+							+ "I think of drinking in a foot or even two\r\n"
+							+ "My favorite stallion that I keep in my top drawer\r\n"
+							+ "Slip it in and out be dripping goo\r\n"
+							+ "As I take more cock, horse cock\r\n"
+							+ "Shut the door and turn the lock\r\n"
+							+ "Is your cock a horse cock?\r\n"
+							+ "You will never hear me saying neigh!\r\n"
+							+ "'Cause there is no cock like horse cock\r\n"
+							+ "Rub my dick inside a sock\r\n"
+							+ "Don't stop now, horse cock\r\n"
+							+ "Stretch out my insides and make me pray\r\n"
+							+ "My lovely horse cock, horse cock\r\n"
+							+ "Horse cock, horse cock");
+					embedBuilder.addField("No Cock Like Horse Cock", "Pepper Coyote", false);
+					//embedBuilder.setTimestamp(Instant.now());
+					
+					event.replyEmbeds(embedBuilder.build()).queue();
 					break;
 				}
 			} else {

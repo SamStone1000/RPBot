@@ -1,4 +1,4 @@
-package reactors;
+package scheduled;
 
 import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
@@ -13,6 +13,7 @@ import util.SharedConstants;
 public class RecurringMessage implements Job {
 
 	private long channel;
+	
 	public void setChannel(long channnelID) {
 		this.channel = channnelID;
 	}

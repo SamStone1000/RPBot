@@ -19,6 +19,8 @@ public class SharedConstants {
 		
 		public static final String ROLES_FOLDER = BIN + "roles" + File.separatorChar;
 		
+		public static final String SQL_CONNECTION = "jdbc:derby:RPStore;create=true";
+		
 		public static final Logger GLOBAL_LOGGER = LoggerFactory.getLogger("Global Debug");
 		
 		public static final ScheduledThreadPoolExecutor SCHEDULER = new ScheduledThreadPoolExecutor(2);
