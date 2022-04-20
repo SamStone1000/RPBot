@@ -10,8 +10,6 @@ import net.dv8tion.jda.api.utils.TimeUtil;
 
 public class Testing {
 
-	public static void main(String[] args) throws IOException {
-		System.out.println(ZoneId.systemDefault().getRules());
-	}
+	public static void main(String[] args) throws IOException { System.out.println(ZoneId.systemDefault().getRules()); }
 
 }

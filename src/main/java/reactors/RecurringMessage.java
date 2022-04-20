@@ -13,21 +13,18 @@ import util.SharedConstants;
 public class RecurringMessage implements Job {
 
 	private long channel;
-	public void setChannel(long channnelID) {
-		this.channel = channnelID;
-	}
 
-	public void setMessage(String message) {
-		this.message = message;
-	}
+	public void setChannel(long channnelID) { this.channel = channnelID; }
+
+	public void setMessage(String message) { this.message = message; }
 
 	private String message;
 
 	@Override
 	public void execute(JobExecutionContext context) throws JobExecutionException {
 		SharedConstants.jda.getTextChannelById(channel).sendMessage(message).queue();
-		//SharedConstants.GLOBAL_LOGGER.debug(message);
-		//SharedConstants.GLOBAL_LOGGER.debug(Long.toString(channel));
+		// SharedConstants.GLOBAL_LOGGER.debug(message);
+		// SharedConstants.GLOBAL_LOGGER.debug(Long.toString(channel));
 	}
 
 }

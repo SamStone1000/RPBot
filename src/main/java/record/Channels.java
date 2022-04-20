@@ -1,4 +1,5 @@
 package record;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -36,37 +37,39 @@ public class Channels {
 		Guild guild = jda.getGuildById(guildId);
 		List<TextChannel> tempChannels = guild.getTextChannels();
 		new File(SharedConstants.MESSAGES_FOLDER).mkdirs();
-		for (TextChannel channel : tempChannels) {
+		for (TextChannel channel : tempChannels)
+		{
 			long id = channel.getIdLong();
 			messageCounter.put(id, new MutableInteger(0));
 			channels.put(id, new Messages(id, jda));
 		}
 	}
-	
+
 	public void searchChannels(MessageProcessers processers) {
-		for (Messages messages : channels.values()) {
-			messages.searchMessages(processers);
-		}
+		for (Messages messages : channels.values())
+		{ messages.searchMessages(processers); }
 	}
-	
+
 	public void syncChannel(Message message) {
 		long channelId = message.getChannel().getIdLong();
 		MutableInteger mutableInteger = messageCounter.get(channelId);
 		mutableInteger.increment();
-		if (mutableInteger.intValue() > 100) {
+		if (mutableInteger.intValue() > 100)
+		{
 			mutableInteger.add(-100);
-			LoggerFactory.getLogger("sync").debug("Syncing "+channelId);
+			LoggerFactory.getLogger("sync").debug("Syncing " + channelId);
 			channels.get(channelId).fetchMessages(message.getIdLong());
 		}
 	}
 
 	public void fetchAll(long channel) {
 		Logger logger = LoggerFactory.getLogger("Fetch");
-		for (Messages messages : channels.values()) {
+		for (Messages messages : channels.values())
+		{
 			long start = System.currentTimeMillis();
 			messages.fetchMessages();
 			long end = System.currentTimeMillis();
-			String debug = "Fetched <#"+messages.getId()+"> in "+(end - start) + " ms";
+			String debug = "Fetched <#" + messages.getId() + "> in " + (end - start) + " ms";
 			logger.info(debug);
 			jda.getTextChannelById(channel).sendMessage(debug).queue();
 		}

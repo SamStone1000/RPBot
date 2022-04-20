@@ -25,12 +25,13 @@ public class Reactioner implements Consumer<Message> {
 	@Override
 	public void accept(Message message) {
 
-		if (pattern.matcher(message.getContentRaw().toLowerCase()).find()) {
+		if (pattern.matcher(message.getContentRaw().toLowerCase()).find())
+		{
 			System.out.println("h");
 			if (emoji != null)
-			message.addReaction(emoji).queue();
+				message.addReaction(emoji).queue();
 			else
-			message.addReaction(emote).queue();
+				message.addReaction(emote).queue();
 		}
 	}
 
