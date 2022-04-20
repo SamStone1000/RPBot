@@ -59,13 +59,16 @@ public class KarmaCounter {
 		this.shouldSave = shouldAffect;
 	}
 
-	public List<Long> findKarma(String content, Long id) {
-		String stripped = content.replaceAll(" ", "");
+	public List<Long> findKarma(String content, Long author) {
+		
 		Matcher matcher = mentionPattern.matcher(content);
 		List<Long> receivers = new ArrayList<>();
-		if (id == 456226577798135808l) {
-			id = 827724526313537536l;
+		if (author == 456226577798135808l) {
+			author = 827724526313537536l;
 		}
+		
+		
+		
 		while (matcher.find())
 		{
 			//int end = matcher.end();
@@ -88,51 +91,29 @@ public class KarmaCounter {
 		//String group = matcher.group();
 			//long receiver = Long.valueOf(group.substring(MENTION_OFFSET, group.length() - 1));
 			long receiver = Long.valueOf(matcher.group(1));
-			if (receiver == 456226577798135808l) {
-				receiver = 827724526313537536l;
-			}
-			receivers.add(receiver);
-			MutableInteger oldCount = karmaCounts.get(receiver);
-			if (oldCount != null)
-			{
-				oldCount.add(change);
-			}
-			else
-			{
-				karmaCounts.put(receiver, new MutableInteger(change));
-			}
-			if (change == 1)
-			{
-				MutableInteger giverCount = givenCounts.get(id);
-				if (giverCount != null)
-				{
-					giverCount.increment();
-				}
-				else
-				{
-					givenCounts.put(id, new MutableInteger(1));
-				}
-			}
-			if (shouldSave)
-			{
-				Helper.writeMap(karmaCounts, karmaFile);
-				Helper.writeMap(givenCounts, givenFile);
-			}
-
+			giveKarma(receiver, author, change);
 		}
 		return receivers;
 	}
 
 	public void accept(Message message) {
-		List<Long> users = findKarma(message.getContentRaw(), message.getAuthor().getIdLong());
+		List<Long> receivingUsers = findKarma(message.getContentRaw(), message.getAuthor().getIdLong());
 		
-		if (!users.isEmpty())
+		if (message.getContentRaw().startsWith("++")) {
+			Message referenced = message.getReferencedMessage();
+			if (referenced != null) {
+				receivingUsers.add(referenced.getAuthor().getIdLong());
+				
+			}
+		}
+		
+		if (!receivingUsers.isEmpty())
 			if (shouldSave) {
 		{
 			String output = "";
 			Guild guild = message.getGuild();
 			Long lastUser = null;
-			for (Long id : users)
+			for (Long id : receivingUsers)
 			{
 				if (id.equals(lastUser)) continue;
 				lastUser = id;
@@ -146,6 +127,40 @@ public class KarmaCounter {
 			 */
 		}
 		}
+	}
+	
+	public void giveKarma(long receiver, long giver, int change) {
+		if (receiver == 456226577798135808l) {
+			receiver = 827724526313537536l;
+		}
+		//receivers.add(receiver);
+		MutableInteger oldCount = karmaCounts.get(receiver);
+		if (oldCount != null)
+		{
+			oldCount.add(change);
+		}
+		else
+		{
+			karmaCounts.put(receiver, new MutableInteger(change));
+		}
+		if (change >= 1)
+		{
+			MutableInteger giverCount = givenCounts.get(giver);
+			if (giverCount != null)
+			{
+				giverCount.add(change);;
+			}
+			else
+			{
+				givenCounts.put(giver, new MutableInteger(1));
+			}
+		}
+		if (shouldSave)
+		{
+			Helper.writeMap(karmaCounts, karmaFile);
+			Helper.writeMap(givenCounts, givenFile);
+		}
+
 	}
 
 	public int getKarma(long id) {
