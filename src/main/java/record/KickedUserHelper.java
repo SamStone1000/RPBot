@@ -256,8 +256,8 @@ public class KickedUserHelper extends ListenerAdapter {
 			consequenceMeter++;
 		if (member.getIdLong() == 248241320441806851l)
 			consequenceMeter++;
-		if (member.getIdLong() == 275383746306244608l)
-			consequenceMeter = -1;
+//		if (member.getIdLong() == 275383746306244608l) //no more special privileges for me
+//			consequenceMeter = -1;
 		final BigInteger banDuration;
 		switch (consequenceMeter)
 		{
