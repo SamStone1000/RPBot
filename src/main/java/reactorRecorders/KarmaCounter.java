@@ -22,7 +22,7 @@ public class KarmaCounter {
 
 	private Map<Long, MutableInteger> karmaCounts;
 	private Map<Long, MutableInteger> givenCounts;
-	private static Pattern mentionPattern = Pattern.compile("(?:<@!*?)(\\d*?)(?:>) *?([+-]{2})");
+	private static Pattern mentionPattern = Pattern.compile("(?:<@!?)(\\d*?)(?:>) *?([+-]{2}|(?:[+-]= *(\\d+)?) *(\\d+)?)");
 	// private static int MENTION_OFFSET = 3;
 	private boolean shouldSave;
 	private File karmaFile;
@@ -72,25 +72,22 @@ public class KarmaCounter {
 
 		while (matcher.find())
 		{
-			// int end = matcher.end();
 			int change = 0;
-			try
+			if (matcher.groupCount() == 3) //using a +=/-= syntax
 			{
-				String decider = matcher.group(2);
-				if (decider.equals("++"))
-				{
+				change = Integer.valueOf(matcher.group(3));
+				if (matcher.group(2).startsWith("-")) change = -change; //negate it if the karma is being subtracted
+			} else { //using a ++ or -- syntax
+				if (matcher.group(2).equals("++")) {
 					change = 1;
-				} else
-					if (decider.equals("--"))
-					{ change = -1; }
-			} catch (IndexOutOfBoundsException e)
-			{}
-			if (change == 0)
-				continue;
-			// String group = matcher.group();
-			// long receiver = Long.valueOf(group.substring(MENTION_OFFSET, group.length() -
-			// 1));
+				} else if (matcher.group(2).equals("--")) {
+					change = -1;
+				}
+			}
+			
+			
 			long receiver = Long.valueOf(matcher.group(1));
+			receivers.add(receiver);
 			giveKarma(receiver, author, change);
 		}
 		return receivers;
