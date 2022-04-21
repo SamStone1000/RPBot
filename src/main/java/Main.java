@@ -5,7 +5,9 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.sql.SQLException;
 import java.text.ParseException;
+import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -37,8 +39,10 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
@@ -58,20 +62,25 @@ import net.dv8tion.jda.api.interactions.commands.Command.Type;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import net.dv8tion.jda.api.interactions.components.Modal;
+import net.dv8tion.jda.api.interactions.components.text.TextInput;
+import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.requests.restaction.CommandListUpdateAction;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import reactorRecorders.E621Counter;
 import reactorRecorders.KarmaCounter;
 import reactorRecorders.VoreCounter;
-import reactors.CringeDLB;
 import reactors.Reactioner;
-import reactors.RecurringMessage;
 import record.Channels;
 import record.KickedUserHelper;
+import record.LyricStore;
 import recorders.Counter;
 import recorders.MessageProcessers;
 import recorders.StatCounter;
+import scheduled.CringeDLB;
+import scheduled.DailyLyrics;
+import scheduled.RecurringMessage;
 import util.MutableInteger;
 import util.SharedConstants;
 
@@ -87,11 +96,14 @@ public class Main extends ListenerAdapter {
 	// in, args[2] is the id of the channel to send vore to, args[3] is the id to
 	// send freefall reminders to
 	public static void main(String[] args)
-			throws LoginException, InterruptedException, IOException, NumberFormatException, SchedulerException {
+			throws LoginException, InterruptedException, IOException, NumberFormatException, SchedulerException, SQLException {
 		JDABuilder builder = JDABuilder.createLight(args[0], GatewayIntent.GUILD_MESSAGES, GatewayIntent.GUILD_MEMBERS);
 		// builder.addEventListeners(new Main());
 		builder.setMemberCachePolicy(MemberCachePolicy.ALL);
 		JDA jda = builder.build();
+		
+		System.setProperty("derby.language.sequence.preallocator", "1"); //prevent leaks from improper shutdowns
+		SharedConstants.init();
 
 		MessageProcessers messageProcessers = new MessageProcessers();
 		// Counter voreCounter = new Counter("vore", Pattern.compile("(?:^|\\W)vore"));
@@ -116,6 +128,7 @@ public class Main extends ListenerAdapter {
 		Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
 		jda.addEventListener(new Main(messageProcessers, channels, logger, scheduler));
 		jda.addEventListener(kickedUserRoles);
+		jda.addEventListener(new LyricStore());
 
 		// welcome to jank city pop. 1
 		SharedConstants.jda = jda;
@@ -135,9 +148,18 @@ public class Main extends ListenerAdapter {
 		CronScheduleBuilder DLBSchedule = CronScheduleBuilder.cronSchedule("0 30 15 * * ?")
 				.inTimeZone(TimeZone.getTimeZone(ZoneOffset.of("-4")));
 		Trigger DLBTrigger = TriggerBuilder.newTrigger().withSchedule(DLBSchedule).build();
+		
+		JobDetail DLDetail = JobBuilder.newJob(DailyLyrics.class)
+				.withIdentity("Daily Lyric", "Recurring Messages")
+				.usingJobData("guild", 903451374799429673l)
+				.usingJobData("channel", 903451376779157586l).build();
+		CronScheduleBuilder DLSchedule = CronScheduleBuilder.cronSchedule("0 30 15 * * ?")
+				.inTimeZone(TimeZone.getTimeZone("America/Louisville"));
+		Trigger DLTrigger = TriggerBuilder.newTrigger().withSchedule(DLSchedule).build();
 
 		scheduler.scheduleJob(freefallDetail, freefallTrigger);
-		scheduler.scheduleJob(DLBDetail, DLBTrigger);
+		//scheduler.scheduleJob(DLBDetail, DLBTrigger);
+		scheduler.scheduleJob(DLDetail, DLTrigger);
 
 		scheduler.start();
 
@@ -172,6 +194,7 @@ public class Main extends ListenerAdapter {
 				)
 		);
 		commands.addCommands(Commands.context(Type.USER, "kick"));
+		commands.addCommands(Commands.slash(LyricStore.COMMAND_NAME, "Allows you to add a lyric to be sent later"));
 		// commands.addCommands(Commands.message("Give"));
 		commands.queue();
 		// new CringeDLB().execute(null);
@@ -323,18 +346,56 @@ public class Main extends ListenerAdapter {
 						try
 						{
 							scheduler.shutdown();
+							SharedConstants.DATABASE_CONNECTION.close();
 						} catch (SchedulerException e)
 						{
 							// TODO Auto-generated catch block
 							e.printStackTrace();
+						} catch (SQLException se)
+						{
+							if (( (se.getErrorCode() == 50000)
+				                    && ("XJ015".equals(se.getSQLState()) ))) {
+				                // we got the expected exception
+				                logger.debug("Derby shut down normally");
+				                // Note that for single database shutdown, the expected
+				                // SQL state is "08006", and the error code is 45000.
+				            } else {
+				                // if the error code or SQLState is different, we have
+				                // an unexpected exception (shutdown failed)
+				                logger.debug("Derby did not shut down normally");
+				            }
 						}
 					System.exit(0);
 					break;
-				case "trollDLB":
-					event.reply("ok").queue();
+				case "sendEmbed":
+					EmbedBuilder embedBuilder = new EmbedBuilder();
+					embedBuilder.setAuthor(event.getMember().getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl());
+					//embedBuilder.setTitle("<song name>");
+					event.replyEmbeds(embedBuilder.build()).queue();
+					break;
+				case "sendModal" :
+					TextInput input = TextInput.create("Testing", "label", TextInputStyle.SHORT)
+										.setPlaceholder("placeholder")
+										.setValue("value")
+										.build();
+					TextInput input2 = TextInput.create("Testing2", "label2", TextInputStyle.SHORT)
+							.setPlaceholder("placeholder")
+							.setValue("value")
+							.build();
+					Modal modal = Modal.create("TestingModal", "modalTitle")
+							.addActionRow(input)
+							.addActionRow(input2)
+							.build();
+					event.replyModal(modal).queue();
+					break;
+				case ".force" :
+					event.reply(".force").queue();
+					DailyLyrics tempLyrics = new DailyLyrics();
+					tempLyrics.setChannel(event.getChannel().getIdLong());
+					tempLyrics.setGuild(event.getGuild().getIdLong());
 					try
 					{
-						new CringeDLB().execute(null);
+						tempLyrics.execute(null);
 					} catch (JobExecutionException e)
 					{
 						// TODO Auto-generated catch block

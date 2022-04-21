@@ -18,8 +18,10 @@ repositories {
     // Use Maven Central for resolving dependencies.
     mavenCentral()
 	
+	
 	maven { // on kotlin dsl use `maven("https://m2.dv8tion.net/releases")` instead
       url "https://m2.dv8tion.net/releases"
+	  url 'https://jitpack.io' 
   }
 }
 
@@ -29,12 +31,17 @@ dependencies {
 
     // This dependency is used by the application.
 	implementation 'ch.qos.logback:logback-classic:1.2.8'
-	implementation("net.dv8tion:JDA:5.0.0-alpha.5")
+	
+	//implementation("net.dv8tion:JDA:5.0.0-alpha.5")
+	implementation 'com.github.DV8FromTheWorld:JDA:5492a76bce' //livin on the edge
+	
 	implementation("com.fasterxml.jackson.core:jackson-databind:2.10.1")
 	implementation("org.jfree:jfreechart:1.5.3")
 	implementation("org.quartz-scheduler:quartz:2.3.0")
 	
-	files('libs/derby.jar')
+	implementation(files('libs/derby.jar'))
+	implementation(files('libs/derbyshared.jar'))
+	implementation(files('libs/derbytool.jar'))
 }
 
 application {
