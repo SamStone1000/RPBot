@@ -151,8 +151,8 @@ public class Main extends ListenerAdapter {
 		
 		JobDetail DLDetail = JobBuilder.newJob(DailyLyrics.class)
 				.withIdentity("Daily Lyric", "Recurring Messages")
-				.usingJobData("guild", 903451374799429673l)
-				.usingJobData("channel", 903451376779157586l).build();
+				.usingJobData("guild", Long.valueOf(args[1]))
+				.usingJobData("channel", 485967269512478721l).build();
 		CronScheduleBuilder DLSchedule = CronScheduleBuilder.cronSchedule("0 30 15 * * ?")
 				.inTimeZone(TimeZone.getTimeZone("America/Louisville"));
 		Trigger DLTrigger = TriggerBuilder.newTrigger().withSchedule(DLSchedule).build();

@@ -21,7 +21,7 @@ public class Testing {
 		System.out.println(end - start);
 		Statement statement = conn.createStatement();
 		//statement.execute("DROP TABLE lyrics");
-		statement.execute("create table lyricstore(internalID SMALLINT GENERATED ALWAYS AS IDENTITY (INCREMENT BY 1, CYCLE), authorid bigint, lyric varchar(4000), name varchar(256), artist varchar(256))");
+		//statement.execute("create table lyricstore(internalID SMALLINT GENERATED ALWAYS AS IDENTITY (INCREMENT BY 1, CYCLE), authorid bigint, lyric varchar(4000), name varchar(256), artist varchar(256))");
 //		PreparedStatement prepared = conn.prepareStatement("insert into lyrics values(DEFAULT, ?, ?)");
 //		
 //		prepared.setLong(1, (long) (Math.random() * Long.MAX_VALUE));
