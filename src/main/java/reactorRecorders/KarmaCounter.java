@@ -22,7 +22,7 @@ public class KarmaCounter {
 
 	private Map<Long, MutableInteger> karmaCounts;
 	private Map<Long, MutableInteger> givenCounts;
-	private static Pattern mentionPattern = Pattern.compile("(?:<@!?)(\\d*?)(?:>) *?([+-]{2}|(?:[+-]= *(\\d+)?) *(\\d+)?)");
+	private static Pattern mentionPattern = Pattern.compile("(?:<@!?)(\\d*?)(?:>) *?([+-]{2}|[+-]= *(-?\\d+))");
 	// private static int MENTION_OFFSET = 3;
 	private boolean shouldSave;
 	private File karmaFile;
@@ -73,14 +73,16 @@ public class KarmaCounter {
 		while (matcher.find())
 		{
 			int change = 0;
-			if (matcher.groupCount() == 3) //using a +=/-= syntax
+			String group2 = matcher.group(2);
+			String group3 = matcher.group(3);
+			if (group3 != null) //using a +=/-= syntax
 			{
-				change = Integer.valueOf(matcher.group(3));
-				if (matcher.group(2).startsWith("-")) change = -change; //negate it if the karma is being subtracted
+				change = Integer.valueOf(group3);
+				if (group2.startsWith("-")) change = -change; //negate it if the karma is being subtracted
 			} else { //using a ++ or -- syntax
-				if (matcher.group(2).equals("++")) {
+				if (group2.equals("++")) {
 					change = 1;
-				} else if (matcher.group(2).equals("--")) {
+				} else if (group2.equals("--")) {
 					change = -1;
 				}
 			}
