@@ -72,33 +72,26 @@ public class DailyLyrics extends ListenerAdapter implements Job {
 			builder.setAuthor(author.getEffectiveName(), null, author.getEffectiveAvatarUrl());
 			builder.setDescription(resultSet.getString(2));
 			builder.addField(resultSet.getString(3), resultSet.getString(4), false);
+			builder.setFooter((ids.size() - 1) + " Lyrics remain");
 			logger.info("Sending Daily Lyric");
 			channel.sendMessageEmbeds(builder.build()).queue();
 			
 			resultSet.close();
+			
+			statement.execute("DELETE FROM "+LyricStore.TABLE+" WHERE internalID = "+temp.toString());
 		} catch (SQLException e)
 		{
 			logger.warn(e.toString());
-		}/* finally {
-		try //shutdown database safely to prevent leaks
-		{
-		DriverManager.getConnection("jdbc:derby:;shutdown=true");
-		} catch (SQLException se)
-        {
-            if (( (se.getErrorCode() == 50000)
-                    && ("XJ015".equals(se.getSQLState()) ))) {
-                // we got the expected exception
-                logger.debug("Derby shut down normally");
-                // Note that for single database shutdown, the expected
-                // SQL state is "08006", and the error code is 45000.
-            } else {
-                // if the error code or SQLState is different, we have
-                // an unexpected exception (shutdown failed)
-                logger.debug("Derby did not shut down normally");
-            }
-        }
-		} */
-		
+		} finally {
+			try
+			{
+				SharedConstants.DATABASE_CONNECTION.commit();
+			} catch (SQLException e)
+			{
+				// TODO Auto-generated catch block
+				logger.warn(e.toString());
+			}
+		}
 	}
 
 }

@@ -21,7 +21,7 @@ public class Testing {
 		System.out.println(end - start);
 		Statement statement = conn.createStatement();
 		//statement.execute("DROP TABLE lyrics");
-		//statement.execute("create table lyricstore(internalID SMALLINT GENERATED ALWAYS AS IDENTITY (INCREMENT BY 1, CYCLE), authorid bigint, lyric varchar(4000), name varchar(128), artist varchar(128))");
+		statement.execute("create table lyricstore(internalID SMALLINT GENERATED ALWAYS AS IDENTITY (INCREMENT BY 1, CYCLE), authorid bigint, lyric varchar(4000), name varchar(256), artist varchar(256))");
 //		PreparedStatement prepared = conn.prepareStatement("insert into lyrics values(DEFAULT, ?, ?)");
 //		
 //		prepared.setLong(1, (long) (Math.random() * Long.MAX_VALUE));
@@ -37,16 +37,16 @@ public class Testing {
 //				ids.add(rs.getShort(1));
 //			}
 //			
-			statement.execute("select * from lyricstore");
-			ResultSet rs = statement.getResultSet();
+//			statement.execute("select * from lyricstore");
+//			ResultSet rs = statement.getResultSet();
 //			
-			int colCount = rs.getMetaData().getColumnCount();
-			while (rs.next()){
-			    for(int i = 1; i < colCount; i++){
-			       System.out.print(rs.getString(i) + ", ");
-			    }
-			    System.out.println(rs.getString(colCount));
-			}
+//			int colCount = rs.getMetaData().getColumnCount();
+//			while (rs.next()){
+//			    for(int i = 1; i < colCount; i++){
+//			       System.out.print(rs.getString(i) + ", ");
+//			    }
+//			    System.out.println(rs.getString(colCount));
+//			}
 //			
 //			Short temp = ids.get(new Random().nextInt(ids.size()));
 //			System.out.println(temp);

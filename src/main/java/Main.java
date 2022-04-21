@@ -153,12 +153,12 @@ public class Main extends ListenerAdapter {
 				.withIdentity("Daily Lyric", "Recurring Messages")
 				.usingJobData("guild", 903451374799429673l)
 				.usingJobData("channel", 903451376779157586l).build();
-		CronScheduleBuilder DLSchedule = CronScheduleBuilder.cronSchedule("0/10 * * * * ?")
+		CronScheduleBuilder DLSchedule = CronScheduleBuilder.cronSchedule("0 30 15 * * ?")
 				.inTimeZone(TimeZone.getTimeZone("America/Louisville"));
 		Trigger DLTrigger = TriggerBuilder.newTrigger().withSchedule(DLSchedule).build();
 
 		scheduler.scheduleJob(freefallDetail, freefallTrigger);
-		scheduler.scheduleJob(DLBDetail, DLBTrigger);
+		//scheduler.scheduleJob(DLBDetail, DLBTrigger);
 		scheduler.scheduleJob(DLDetail, DLTrigger);
 
 		scheduler.start();
@@ -387,6 +387,20 @@ public class Main extends ListenerAdapter {
 							.addActionRow(input2)
 							.build();
 					event.replyModal(modal).queue();
+					break;
+				case ".force" :
+					event.reply(".force").queue();
+					DailyLyrics tempLyrics = new DailyLyrics();
+					tempLyrics.setChannel(event.getChannel().getIdLong());
+					tempLyrics.setGuild(event.getGuild().getIdLong());
+					try
+					{
+						tempLyrics.execute(null);
+					} catch (JobExecutionException e)
+					{
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 					break;
 				}
 			} else
