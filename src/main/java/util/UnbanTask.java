@@ -4,6 +4,7 @@ import java.util.TimerTask;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.User;
 
 public class UnbanTask extends TimerTask {
 
@@ -18,5 +19,5 @@ public class UnbanTask extends TimerTask {
 	}
 
 	@Override
-	public void run() { jda.getGuildById(guildId).unban(memberId).queue(); }
+	public void run() { jda.getGuildById(guildId).unban(User.fromId(memberId)).queue(); }
 }

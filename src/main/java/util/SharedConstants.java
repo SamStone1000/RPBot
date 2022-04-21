@@ -1,6 +1,9 @@
 package util;
 
 import java.io.File;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import org.quartz.Scheduler;
@@ -19,11 +22,16 @@ public class SharedConstants {
 		
 		public static final String ROLES_FOLDER = BIN + "roles" + File.separatorChar;
 		
-		public static final String SQL_CONNECTION = "jdbc:derby:RPStore;create=true";
+		public static final String SQL_CONNECTION = "jdbc:derby:RPStore";
+		public static Connection DATABASE_CONNECTION;
 		
 		public static final Logger GLOBAL_LOGGER = LoggerFactory.getLogger("Global Debug");
 		
 		public static final ScheduledThreadPoolExecutor SCHEDULER = new ScheduledThreadPoolExecutor(2);
 		
 		public static JDA jda;
+		
+		public static void init() throws SQLException {
+				DATABASE_CONNECTION = DriverManager.getConnection(SQL_CONNECTION);
+		}
 }

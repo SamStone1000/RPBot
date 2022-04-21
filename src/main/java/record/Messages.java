@@ -100,10 +100,7 @@ public class Messages {
 	public boolean sync() throws IOException {
 		long currentId;
 		TextChannel channel = jda.getTextChannelById(channelId);
-		if (channel.hasLatestMessage())
-			currentId = channel.getLatestMessageIdLong();
-		else
-			return false;
+		currentId = channel.getLatestMessageIdLong();
 		if (recentId == currentId)
 			return true;
 		else
@@ -200,7 +197,6 @@ public class Messages {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		if (channel.hasLatestMessage())
 			fetchMessages(beginning.getIdLong(), channel.getLatestMessageIdLong());
 	}
 

@@ -2,20 +2,20 @@ package record;
 
 import net.dv8tion.jda.api.entities.MessageActivity;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.UserSnowflake;
 import net.dv8tion.jda.internal.entities.AbstractMessage;
-import net.dv8tion.jda.internal.entities.UserById;
+import net.dv8tion.jda.internal.entities.UserSnowflakeImpl;
 
 public class OfflineMessage extends AbstractMessage {
 
 	long id;
-	User author;
+	UserSnowflake author;
 
 	public OfflineMessage(String content, String nonce, boolean isTTS, long id, long authorId) {
 		super(content, nonce, isTTS);
 		this.id = id;
-		this.author = new UserById(authorId);
+		this.author = UserSnowflake.fromId(authorId);
 	}
-
 	@Override
 	public MessageActivity getActivity() {
 		unsupported();
@@ -31,6 +31,6 @@ public class OfflineMessage extends AbstractMessage {
 	}
 
 	@Override
-	public User getAuthor() { return author; }
+	public User getAuthor() { return null; } //will fix later
 
 }

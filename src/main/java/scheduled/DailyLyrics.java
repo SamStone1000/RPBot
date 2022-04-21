@@ -18,11 +18,12 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import record.LyricStore;
 import util.SharedConstants;
 
-public class DailyLyrics implements Job {
+public class DailyLyrics extends ListenerAdapter implements Job {
 
-	public static String tableName = "LyricStore";
 	private long channelID;
 	private long guildID;
 	
@@ -41,14 +42,13 @@ public class DailyLyrics implements Job {
 	@Override
 	public void execute(JobExecutionContext context) throws JobExecutionException {
 		Logger logger = LoggerFactory.getLogger(getClass());
-		try (Connection conn = DriverManager.getConnection(SharedConstants.SQL_CONNECTION);
-				Statement statement = conn.createStatement())
+		try (Statement statement = SharedConstants.DATABASE_CONNECTION.createStatement())
 		{
-			statement.execute("SELECT internalID FROM "+tableName);
-			ResultSet resultsInternalID = statement.getResultSet();
+			statement.execute("SELECT internalID FROM "+LyricStore.TABLE);
+			ResultSet resultSet = statement.getResultSet();
 			ArrayList<Short> ids = new ArrayList<Short>();
-			while (resultsInternalID.next()) {
-				ids.add(resultsInternalID.getShort(1)); //adds every id to an arraylist
+			while (resultSet.next()) {
+				ids.add(resultSet.getShort(1)); //adds every id to an arraylist
 			}
 			
 			Guild guild = SharedConstants.jda.getGuildById(guildID);
@@ -59,25 +59,27 @@ public class DailyLyrics implements Job {
 				return;
 			}
 			Short temp = ids.get(new Random().nextInt(ids.size())); //select a random internalID
-			statement.execute("SELECT authorID, lyric, name, artist FROM "+tableName+" WHERE internalID = "+temp.toString()); //getting the lyric that corresponds to the random internalID
-			ResultSet resultsLyric = statement.getResultSet();
+			statement.execute("SELECT authorID, lyric, name, artist FROM "+LyricStore.TABLE+" WHERE internalID = "+temp.toString()); //getting the lyric that corresponds to the random internalID
+			resultSet.close();
+			resultSet = statement.getResultSet();
 			
-			resultsLyric.next(); //should only be one
+			resultSet.next(); //should only be one
 			
-			Member author = guild.getMemberById(resultsLyric.getLong(1));
+			Member author = guild.retrieveMemberById(resultSet.getLong(1)).complete();
+			//logger.debug(Long.toString(resultsLyric.getLong(1)));
 			EmbedBuilder builder = new EmbedBuilder();
 			
 			builder.setAuthor(author.getEffectiveName(), null, author.getEffectiveAvatarUrl());
-			builder.setDescription(resultsLyric.getString(2));
-			builder.addField(resultsLyric.getString(3), resultsLyric.getString(4), false);
+			builder.setDescription(resultSet.getString(2));
+			builder.addField(resultSet.getString(3), resultSet.getString(4), false);
 			logger.info("Sending Daily Lyric");
 			channel.sendMessageEmbeds(builder.build()).queue();
 			
+			resultSet.close();
 		} catch (SQLException e)
 		{
 			logger.warn(e.toString());
-		}
-		
+		}/* finally {
 		try //shutdown database safely to prevent leaks
 		{
 		DriverManager.getConnection("jdbc:derby:;shutdown=true");
@@ -95,6 +97,7 @@ public class DailyLyrics implements Job {
                 logger.debug("Derby did not shut down normally");
             }
         }
+		} */
 		
 	}
 

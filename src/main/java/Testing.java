@@ -12,7 +12,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class Testing {
 
 	public static void main (String[] args) throws SQLException {
-		String dataBaseName = "test";
+		String dataBaseName = "RPStore";
 		long start = System.currentTimeMillis();
 		System.setProperty("derby.language.sequence.preallocator", "1");
 		Connection conn = DriverManager.getConnection("jdbc:derby:"+dataBaseName +";create=true");
@@ -21,33 +21,35 @@ public class Testing {
 		System.out.println(end - start);
 		Statement statement = conn.createStatement();
 		//statement.execute("DROP TABLE lyrics");
-		//statement.execute("create table lyrics(internalID SMALLINT GENERATED ALWAYS AS IDENTITY (INCREMENT BY 1, CYCLE), authorid bigint, content varchar(2000))");
-		PreparedStatement prepared = conn.prepareStatement("insert into lyrics values(DEFAULT, ?, ?)");
-		
-		prepared.setLong(1, (long) (Math.random() * Long.MAX_VALUE));
-		prepared.setString(2, "foo");
-		prepared.execute();
-			
-			statement.execute("select internalID from lyrics");
+		//statement.execute("create table lyricstore(internalID SMALLINT GENERATED ALWAYS AS IDENTITY (INCREMENT BY 1, CYCLE), authorid bigint, lyric varchar(4000), name varchar(128), artist varchar(128))");
+//		PreparedStatement prepared = conn.prepareStatement("insert into lyrics values(DEFAULT, ?, ?)");
+//		
+//		prepared.setLong(1, (long) (Math.random() * Long.MAX_VALUE));
+//		prepared.setString(2, "foo");
+//		prepared.execute();
+//			
+//			statement.execute("select internalID from lyrics");
+//			ResultSet rs = statement.getResultSet();
+//			
+//			
+//			ArrayList<Short> ids = new ArrayList<Short>();
+//			while (rs.next()) {
+//				ids.add(rs.getShort(1));
+//			}
+//			
+			statement.execute("select * from lyricstore");
 			ResultSet rs = statement.getResultSet();
-			
-			
-			ArrayList<Short> ids = new ArrayList<Short>();
-			while (rs.next()) {
-				ids.add(rs.getShort(1));
+//			
+			int colCount = rs.getMetaData().getColumnCount();
+			while (rs.next()){
+			    for(int i = 1; i < colCount; i++){
+			       System.out.print(rs.getString(i) + ", ");
+			    }
+			    System.out.println(rs.getString(colCount));
 			}
-			
-			statement.execute("select * from lyrics");
-			rs = statement.getResultSet();
-			
-			while (rs.next()) {
-				System.out.print(rs.getShort(1) + ": ");
-				System.out.print(rs.getLong(2) + ", ");
-				System.out.println(rs.getString(3));
-			}
-			
-			Short temp = ids.get(new Random().nextInt(ids.size()));
-			System.out.println(temp);
+//			
+//			Short temp = ids.get(new Random().nextInt(ids.size()));
+//			System.out.println(temp);
 			conn.commit();
 			try 
 			{
