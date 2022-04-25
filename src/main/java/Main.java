@@ -153,7 +153,7 @@ public class Main extends ListenerAdapter {
 				.withIdentity("Daily Lyric", "Recurring Messages")
 				.usingJobData("guild", Long.valueOf(args[1]))
 				.usingJobData("channel", 485967269512478721l).build();
-		CronScheduleBuilder DLSchedule = CronScheduleBuilder.cronSchedule("0 30 15 * * ?")
+		CronScheduleBuilder DLSchedule = CronScheduleBuilder.cronSchedule("0 0 15 * * ?")
 				.inTimeZone(TimeZone.getTimeZone("America/Louisville"));
 		Trigger DLTrigger = TriggerBuilder.newTrigger().withSchedule(DLSchedule).build();
 
