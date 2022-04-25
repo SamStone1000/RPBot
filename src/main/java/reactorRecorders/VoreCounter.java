@@ -38,6 +38,11 @@ public class VoreCounter extends E621Counter {
 			if (shouldAffect)
 			{
 				Member author = message.getMember();
+				if (author.getIdLong() == 282722155085692929l) //perma ban someone because they asked
+				{
+					KickedUserHelper.banUser(author, "Was asking for it");
+				} else
+				{
 				BigInteger duration = KickedUserHelper.kickForVore(author, super.getCount(author.getIdLong()));
 				if (duration.compareTo(BigInteger.ZERO) != 0)
 				{
@@ -45,6 +50,7 @@ public class VoreCounter extends E621Counter {
 					output += duration.toString();
 					output += " minutes";
 					message.reply(output).queue();
+				}
 				}
 			}
 		}
