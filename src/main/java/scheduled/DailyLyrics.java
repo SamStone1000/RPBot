@@ -18,6 +18,7 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import record.LyricStore;
 import util.SharedConstants;
@@ -55,7 +56,7 @@ public class DailyLyrics extends ListenerAdapter implements Job {
 			TextChannel channel = guild.getTextChannelById(channelID);
 			
 			if (ids.isEmpty()) {//no lyrics found, send message and cancel rest of execution
-				channel.sendMessage("No lyrics found :(").queue();
+				channel.sendMessage("No lyrics in the queue :(").queue();
 				return;
 			}
 			Short temp = ids.get(new Random().nextInt(ids.size())); //select a random internalID
@@ -65,13 +66,22 @@ public class DailyLyrics extends ListenerAdapter implements Job {
 			
 			resultSet.next(); //should only be one
 			
-			Member author = guild.retrieveMemberById(resultSet.getLong(1)).complete();
-			//logger.debug(Long.toString(resultsLyric.getLong(1)));
+			long authorID = resultSet.getLong(1);
 			EmbedBuilder builder = new EmbedBuilder();
-			
+			try
+			{ //uses authors name and avatar if they're in the server
+			Member author = guild.retrieveMemberById(authorID).complete();
 			builder.setAuthor(author.getEffectiveName(), null, author.getEffectiveAvatarUrl());
+			} catch (ErrorResponseException e) {
+				builder.setAuthor(Long.toString(authorID));
+			}
+			//logger.debug(Long.toString(resultsLyric.getLong(1)));
+			
+			
+			
 			builder.setDescription(resultSet.getString(2));
 			builder.addField(resultSet.getString(3), resultSet.getString(4), false);
+			builder.addField(EmbedBuilder.ZERO_WIDTH_SPACE, "||InternalID: "+temp+", AuthorID: "+authorID+"||", false);
 			builder.setFooter((ids.size() - 1) + " Lyrics remain");
 			logger.info("Sending Daily Lyric");
 			channel.sendMessageEmbeds(builder.build()).queue();
