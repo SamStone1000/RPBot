@@ -241,7 +241,7 @@ public class Messages {
 		return channelId;
 	}
 
-	public byte[] messageToBytes(Message message) {
+	public static byte[] messageToBytes(Message message) {
 		byte[] content = message.getContentRaw().getBytes(StandardCharsets.UTF_16BE);
 		byte[] id = Helper.toBytes(message.getIdLong());
 		byte[] authorId = Helper.toBytes(message.getAuthor().getIdLong());
@@ -262,7 +262,7 @@ public class Messages {
 		return messageBytes;
 	}
 
-	public OfflineMessage bytesToMessage(byte[] bytes) {
+	public static OfflineMessage bytesToMessage(byte[] bytes) {
 		byte[] id = new byte[Long.BYTES];
 		byte[] authorId = new byte[Long.BYTES];
 		int offset = 0;// skip the length integer

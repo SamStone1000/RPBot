@@ -9,12 +9,12 @@ import net.dv8tion.jda.internal.entities.UserSnowflakeImpl;
 public class OfflineMessage extends AbstractMessage {
 
 	long id;
-	UserSnowflake author;
+	long author;
 
 	public OfflineMessage(String content, String nonce, boolean isTTS, long id, long authorId) {
 		super(content, nonce, isTTS);
 		this.id = id;
-		this.author = UserSnowflake.fromId(authorId);
+		this.author = authorId;
 	}
 	@Override
 	public MessageActivity getActivity() {
@@ -33,4 +33,5 @@ public class OfflineMessage extends AbstractMessage {
 	@Override
 	public User getAuthor() { return null; } //will fix later
 
+	public long getAuthorLong() { return author; };
 }
