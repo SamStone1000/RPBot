@@ -91,7 +91,7 @@ public class KickedUserHelper extends ListenerAdapter {
 		writeUnBan(member, date);
 	}
 
-	private void readRoles(Member member) {
+	public static void readRoles(Member member) {
 		String id = member.getId();
 		Guild guild = member.getGuild();
 		File file = new File(SharedConstants.ROLES_FOLDER + id + ".roles");
@@ -118,6 +118,7 @@ public class KickedUserHelper extends ListenerAdapter {
 					logger.debug("Role that used to exist found, discarding");
 
 			}
+			guild.modifyMemberRoles(member, roles).queue();
 		} catch (IOException e)
 		{
 			logger.warn("Caught exception while reading roles");
@@ -152,7 +153,7 @@ public class KickedUserHelper extends ListenerAdapter {
 		}
 	}
 
-	private void kickUser(Member member) {
+	private static void kickUser(Member member) {
 		saveUser(member);
 		member.kick().queue();
 	}

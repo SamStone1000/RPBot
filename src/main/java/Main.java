@@ -302,7 +302,7 @@ public class Main extends ListenerAdapter {
 					event.reply(messageProcessers.toString()).queue();
 					break;
 				case "copyCat":
-					event.reply("a").setEphemeral(true).queue();
+					event.reply("foo").setEphemeral(true).queue();
 					event.getChannel().sendMessage(event.getOption("arguments").getAsString()).queue();
 					break;
 				case "stats":
@@ -402,6 +402,10 @@ public class Main extends ListenerAdapter {
 						e.printStackTrace();
 					}
 					break;
+				case "restoreRoles" :
+					event.reply("Alrighty then!").queue();
+					Member member = event.getGuild().getMemberById(event.getOption("arguments").getAsString());
+					KickedUserHelper.readRoles(member);
 				}
 			} else
 			{
