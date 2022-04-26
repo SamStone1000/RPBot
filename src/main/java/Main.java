@@ -404,7 +404,7 @@ public class Main extends ListenerAdapter {
 					break;
 				case "restoreRoles" :
 					event.reply("Alrighty then!").queue();
-					Member member = event.getGuild().getMemberById(event.getOption("arguments").getAsString());
+					Member member = event.getGuild().retrieveMemberById(event.getOption("arguments").getAsString()).complete();
 					KickedUserHelper.readRoles(member);
 				}
 			} else
