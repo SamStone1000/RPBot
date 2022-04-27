@@ -34,5 +34,6 @@ public class SharedConstants {
 		public static void init() throws SQLException {
 				DATABASE_CONNECTION = DriverManager.getConnection(SQL_CONNECTION);
 				DATABASE_CONNECTION.setAutoCommit(false);
+				DATABASE_CONNECTION.getMetaData().getTables("", "", "", null);
 		}
 }

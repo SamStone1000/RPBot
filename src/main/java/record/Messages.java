@@ -15,19 +15,33 @@ import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.DuplicateFormatFlagsException;
 import java.util.List;
 import java.util.Scanner;
 
+import org.quartz.utils.counter.sampled.TimeStampedCounterValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.Message.Attachment;
+import net.dv8tion.jda.api.entities.Message.Interaction;
+import net.dv8tion.jda.api.entities.MessageActivity;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.MessageHistory;
 import net.dv8tion.jda.api.entities.MessageReaction;
+import net.dv8tion.jda.api.entities.MessageReference;
+import net.dv8tion.jda.api.entities.MessageSticker;
+import net.dv8tion.jda.api.entities.MessageType;
 import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
 import recorders.MessageProcessers;
 import recorders.Recorder;
 import util.Helper;
@@ -44,57 +58,18 @@ public class Messages {
 	private File messagesFile;
 	private long recentId;
 	private JDA jda;
-	// measured in characters, length of metadeta before each message on disk
-	private static int METADATA_LENGTH = Long.BYTES + Long.BYTES;
 
 	public static final char SEPARATOR = 0xFFFF;
+	private final PreparedStatement statement;
 
 	public static void main(String[] args) throws IOException {
-		// FileOutputStream fos = new FileOutputStream(new File("h"), false);
-		// BufferedOutputStream buffer = new BufferedOutputStream(fos);
-		// buffer.write(Helper.longToBytes(123000l));
-		// buffer.close();
-		InputStream in = new FileInputStream(new File("h"));
-		BufferedInputStream buffer = new BufferedInputStream(in);
-
-//		byte[] messageContent = new String("cunk").getBytes(StandardCharsets.UTF_16BE);
-//		byte[] output = new byte[METADATA_LENGTH + messageContent.length];
-//		//copy message into output array with empy header
-//		System.arraycopy(messageContent, 0, output, METADATA_LENGTH, messageContent.length);
-//		//copy author id into output
-//		byte[] author = Helper.longToBytes(5);
-//		System.arraycopy(author, 0, output, 0, author.length);
-//		//copy message length into output
-//		byte[] length = Helper.longToBytes(messageContent.length);
-//		System.arraycopy(length, 0, output, author.length, length.length);
-//		buffer.write(output);
-//		buffer.close();
-		byte[] authorBytes = new byte[Long.BYTES];
-		byte[] lengthBytes = new byte[Long.BYTES];
-		buffer.read(authorBytes);
-		buffer.read(lengthBytes);
-		long author = Helper.bytesToLong(authorBytes);
-		long length = Helper.bytesToLong(lengthBytes);
-		byte[] contentBytes = buffer.readNBytes((int) length);
-		// buffer.read(contentBytes);
-		String content = new String(contentBytes, StandardCharsets.UTF_16BE);
-		System.out.println(author);
-		System.out.println(length);
-		System.out.println(content);
+		
 	}
 
-	public Messages(long channelId, JDA jda) throws IOException, InterruptedException {
+	public Messages(long channelId, JDA jda) throws IOException, InterruptedException, SQLException {
 		this.channelId = channelId;
 		this.jda = jda;
-		this.messagesFile = new File(SharedConstants.MESSAGES_FOLDER + channelId + ".txt");
-		if (messagesFile.exists())
-		{
-			this.recentId = getMostRecentIdLong();
-			sync();
-		} else
-		{
-			fetchMessages();
-		}
+		statement = SharedConstants.DATABASE_CONNECTION.prepareStatement("INSERT INTO messages"+channelId+"VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 	}
 
 	public boolean sync() throws IOException {
@@ -277,5 +252,52 @@ public class Messages {
 				new String(content, StandardCharsets.UTF_16BE), null, false, Helper.bytesToLong(id),
 				Helper.bytesToLong(authorId)
 		);
+	}
+	
+	public void extractMessageFields(Message message) {
+		//The mention lists are evaluated from the content so no need to store them
+		//commented out code means its something I would like to store but am too lazy to figure out how/don't need to right now
+		//MessageActivity messageActivity = message.getActivity();
+		//List<Attachment> attachments = message.getAttachments();
+		long author = message.getAuthor().getIdLong();
+		//List<ActionRow> components = message.getActionRows();
+		String content = message.getContentRaw();
+		//Timestamp editedTime = new Timestamp(message.getTimeEdited().toInstant().toEpochMilli());
+		//List<MessageEmbed> embeds = message.getEmbeds();
+		long flags = message.getFlagsRaw();
+		boolean fromWebhook = message.isWebhookMessage();
+		long id = message.getIdLong();
+		//Interaction interaction = message.getInteraction();
+		boolean isTTS = message.isTTS();
+		//have to create the mentioned users and roles list from the content when making a message from this data
+		MessageReference messageReference = message.getMessageReference();
+		String nonce = message.getNonce();
+		boolean pinned = message.isPinned();
+		//List<MessageReaction> reactions = message.getReactions();
+		//List<MessageSticker> stickers = message.getStickers();
+		MessageType type = message.getType();
+		
+		try
+		{
+			statement.setLong(1, author);
+			statement.setString(2, content);
+			statement.setLong(3, flags);
+			statement.setBoolean(4, fromWebhook);
+			statement.setLong(5, id);
+			statement.setBoolean(6, isTTS);
+			//putting the message reference in
+			statement.setLong(7, messageReference.getMessageIdLong());
+			statement.setLong(8, messageReference.getChannelIdLong());
+			statement.setLong(9, messageReference.getGuildIdLong());
+			
+			statement.setString(10, nonce);
+			statement.setBoolean(11, pinned);
+			statement.setInt(12, type.getId());
+			statement.execute();
+		} catch (SQLException e)
+		{
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 }
