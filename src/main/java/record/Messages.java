@@ -69,7 +69,7 @@ public class Messages {
 	public Messages(long channelId, JDA jda) throws IOException, InterruptedException, SQLException {
 		this.channelId = channelId;
 		this.jda = jda;
-		statement = SharedConstants.DATABASE_CONNECTION.prepareStatement("INSERT INTO messages"+channelId+"VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+		this.statement = SharedConstants.DATABASE_CONNECTION.prepareStatement("INSERT INTO channel"+channelId+"VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 	}
 
 	public boolean sync() throws IOException {
@@ -177,11 +177,8 @@ public class Messages {
 
 	private byte[] prepareMessage(Message message) { return messageToBytes(message); }
 
-	private long getMostRecentIdLong() throws IOException {
-		RandomAccessFile randomMessages = new RandomAccessFile(messagesFile, "r");
-		long recentId = randomMessages.readLong();
-		randomMessages.close();
-		return recentId;
+	private long getMostRecentIdLong() {
+	
 	}
 
 	/**
@@ -271,7 +268,7 @@ public class Messages {
 		boolean isTTS = message.isTTS();
 		//have to create the mentioned users and roles list from the content when making a message from this data
 		MessageReference messageReference = message.getMessageReference();
-		String nonce = message.getNonce();
+		//String nonce = message.getNonce();
 		boolean pinned = message.isPinned();
 		//List<MessageReaction> reactions = message.getReactions();
 		//List<MessageSticker> stickers = message.getStickers();
@@ -290,9 +287,9 @@ public class Messages {
 			statement.setLong(8, messageReference.getChannelIdLong());
 			statement.setLong(9, messageReference.getGuildIdLong());
 			
-			statement.setString(10, nonce);
-			statement.setBoolean(11, pinned);
-			statement.setInt(12, type.getId());
+			//statement.setString(10, nonce); will I ever need this, also can't get a good max length for this so hard to put into database, also apparently an int sometimes??? idk
+			statement.setBoolean(10, pinned);
+			statement.setInt(11, type.getId());
 			statement.execute();
 		} catch (SQLException e)
 		{

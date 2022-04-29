@@ -103,7 +103,7 @@ public class Main extends ListenerAdapter {
 		JDA jda = builder.build();
 		
 		System.setProperty("derby.language.sequence.preallocator", "1"); //prevent leaks from improper shutdowns
-		SharedConstants.init();
+		
 
 		MessageProcessers messageProcessers = new MessageProcessers();
 		// Counter voreCounter = new Counter("vore", Pattern.compile("(?:^|\\W)vore"));
@@ -123,6 +123,7 @@ public class Main extends ListenerAdapter {
 		Logger logger = LoggerFactory.getLogger("Main");
 
 		jda.awaitReady();
+		SharedConstants.init(jda);
 		Channels channels = new Channels(jda, Long.parseLong(args[1]));
 		KickedUserHelper kickedUserRoles = new KickedUserHelper();
 		Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();

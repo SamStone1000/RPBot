@@ -2,6 +2,7 @@ package record;
 
 import java.io.File;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NavigableMap;
@@ -29,7 +30,7 @@ public class Channels {
 	public NavigableMap<Long, Messages> channels;
 	public NavigableMap<Long, MutableInteger> messageCounter;
 
-	public Channels(JDA jda, long guildId) throws IOException, InterruptedException {
+	public Channels(JDA jda, long guildId) throws IOException, InterruptedException, SQLException {
 		this.jda = jda;
 		this.guildId = guildId;
 		channels = new TreeMap();

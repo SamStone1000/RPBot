@@ -20,17 +20,19 @@ public class DatabaseConverter {
 	public DatabaseConverter() {}
 
 	public static void main(String[] args) throws SQLException {
-		SharedConstants.init();
+		SharedConstants.init(null);
 		//Statement statement = SharedConstants.DATABASE_CONNECTION.createStatement();
 		//statement.execute("CREATE TABLE Channel577853894147702817(id BIGINT PRIMARY KEY, author BIGINT NOT NULL, content VARCHAR(2000) NOT NULL)");
 		//statement.close();
+		//SharedConstants.DATABASE_CONNECTION.commit();
+		
 		try (InputStream in = new FileInputStream(new File(SharedConstants.MESSAGES_FOLDER + "577853894147702817.txt"));
 				BufferedInputStream buffer = new BufferedInputStream(in);
 				Statement statement = SharedConstants.DATABASE_CONNECTION.createStatement();
 				PreparedStatement prepared = SharedConstants.DATABASE_CONNECTION.prepareStatement("INSERT INTO Channel577853894147702817 VALUES(?, ?, ?)"))
 		{
 			//statement.execute("CREATE TABLE Channel577853894147702817(id BIGINT PRIMARY KEY, author BIGINT NOT NULL, content VARCHAR(2000) NOT NULL)");
-			/*
+			
 			buffer.skip(Long.BYTES); // skip most recent id
 			byte[] lengthBytes = new byte[Integer.BYTES];
 			while (buffer.read(lengthBytes) > 0)
@@ -43,7 +45,7 @@ public class DatabaseConverter {
 				prepared.setString(3, message.getContentRaw());
 				prepared.execute();
 			}
-			*/
+			
 			long start = System.currentTimeMillis();
 			statement.execute("SELECT content FROM Channel577853894147702817");
 			long end = System.currentTimeMillis();
@@ -59,5 +61,6 @@ public class DatabaseConverter {
 		} finally {
 			SharedConstants.DATABASE_CONNECTION.commit();
 		}
+		
 	}
 }

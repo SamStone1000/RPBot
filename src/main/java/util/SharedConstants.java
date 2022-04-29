@@ -3,7 +3,11 @@ package util;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.HashSet;
+import java.util.List;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import org.quartz.Scheduler;
@@ -12,6 +16,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.entities.ChannelType;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.GuildChannel;
 
 public class SharedConstants {
 
@@ -31,9 +38,39 @@ public class SharedConstants {
 		
 		public static JDA jda;
 		
-		public static void init() throws SQLException {
-				DATABASE_CONNECTION = DriverManager.getConnection(SQL_CONNECTION);
-				DATABASE_CONNECTION.setAutoCommit(false);
-				DATABASE_CONNECTION.getMetaData().getTables("", "", "", null);
+		public static void init(JDA jda) throws SQLException {
+			SharedConstants.jda = jda;
+			DATABASE_CONNECTION = DriverManager.getConnection(SQL_CONNECTION);
+			DATABASE_CONNECTION.setAutoCommit(false);
+			if (jda == null) return;
+			Logger logger = LoggerFactory.getLogger(SharedConstants.class);
+			Statement statement = DATABASE_CONNECTION.createStatement();
+			ResultSet tables = DATABASE_CONNECTION.getMetaData().getTables(null, null, null, new String[] {"TABLE"});
+			HashSet<String> existingTables = new HashSet<String>();
+			while (tables.next())
+			{
+				existingTables.add(tables.getString("TABLE_NAME"));
+			}
+			for (String s : existingTables)
+			{
+				logger.debug(s);
+			}
+			List<Guild> guilds = jda.getGuilds();
+			for (Guild guild : guilds)
+			{
+				List<GuildChannel> channels = guild.getChannels();
+				for (GuildChannel channel : channels)
+				{
+					logger.debug(channel.toString());
+					logger.debug(channel.getType().toString());
+					if (channel.getType() != ChannelType.TEXT) continue;
+					logger.debug("foo");
+					String tableName = "CHANNEL"+channel.getId();
+					if (existingTables.contains(tableName)) continue;
+					logger.info("Creating table for "+channel.toString());
+					statement.execute("CREATE TABLE "+tableName+"(author BIGINT, content VARCHAR(2000), flags BIGINT, isfromWebHook BOOLEAN, id BIGINT, isTTS BOOLEAN, referenceMessage BIGINT, referenceChannel BIGINT, referenceGuild BIGINT, isPinned BOOLEAN, type INT)");
+				}
+			}
+			DATABASE_CONNECTION.commit();
 		}
 }
