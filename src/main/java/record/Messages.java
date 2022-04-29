@@ -16,7 +16,9 @@ import java.io.RandomAccessFile;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
@@ -42,6 +44,7 @@ import net.dv8tion.jda.api.entities.MessageSticker;
 import net.dv8tion.jda.api.entities.MessageType;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.internal.entities.ReceivedMessage;
 import recorders.MessageProcessers;
 import recorders.Recorder;
 import util.Helper;
@@ -55,12 +58,11 @@ import util.SharedConstants;
 public class Messages {
 
 	private long channelId;
-	private File messagesFile;
-	private long recentId;
 	private JDA jda;
 
 	public static final char SEPARATOR = 0xFFFF;
-	private final PreparedStatement statement;
+	private final PreparedStatement messageInsertStatement;
+	private final String tableName;
 
 	public static void main(String[] args) throws IOException {
 		
@@ -69,18 +71,19 @@ public class Messages {
 	public Messages(long channelId, JDA jda) throws IOException, InterruptedException, SQLException {
 		this.channelId = channelId;
 		this.jda = jda;
-		this.statement = SharedConstants.DATABASE_CONNECTION.prepareStatement("INSERT INTO channel"+channelId+"VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+		this.tableName = "channel"+channelId;
+		this.messageInsertStatement = SharedConstants.DATABASE_CONNECTION.prepareStatement("INSERT INTO "+tableName+"VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 	}
 
-	public boolean sync() throws IOException {
+	public boolean sync() {
 		long currentId;
 		TextChannel channel = jda.getTextChannelById(channelId);
 		currentId = channel.getLatestMessageIdLong();
-		if (recentId == currentId)
+		if (getMostRecentIdLong() == currentId)
 			return true;
 		else
 		{
-			fetchMessages(recentId, currentId);
+			fetchMessages(getMostRecentIdLong(), currentId);
 			return true;
 		}
 	}
@@ -94,8 +97,7 @@ public class Messages {
 	public void fetchMessages(long start, long end) {
 		boolean isMessageRetrieved = false;
 
-		try (FileOutputStream fos = new FileOutputStream(messagesFile, true);
-				BufferedOutputStream buffer = new BufferedOutputStream(fos))
+		try
 		{
 			TextChannel channel = jda.getTextChannelById(channelId);
 			do
@@ -107,8 +109,7 @@ public class Messages {
 					Message message = messages.get(i);
 					if (!message.getAuthor().isBot())
 					{
-						byte[] preparedMessage = prepareMessage(message);
-						buffer.write(preparedMessage);
+						extractMessageFields(message);
 					}
 					if (message.getIdLong() == end)
 					{
@@ -128,20 +129,16 @@ public class Messages {
 				}
 
 			} while (!isMessageRetrieved);
-		} catch (IOException e)
+		} finally
 		{
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		recentId = end;
-		// update most recent id downloaded
-		try (RandomAccessFile file = new RandomAccessFile(messagesFile, "rwd"))
-		{
-			file.writeLong(end);
-		} catch (IOException e)
-		{
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			try
+			{
+				SharedConstants.DATABASE_CONNECTION.commit();
+			} catch (SQLException e)
+			{
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 	}
 
@@ -152,7 +149,9 @@ public class Messages {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	public void fetchMessages(long end) { fetchMessages(recentId, end); }
+	public void fetchMessages(long end) {
+			fetchMessages(getMostRecentIdLong(), end);
+		}
 
 	/**
 	 * Wipes existing file and rewrites from beginning to end of channel
@@ -163,22 +162,23 @@ public class Messages {
 	public void fetchMessages() {
 		TextChannel channel = jda.getTextChannelById(channelId);
 		Message beginning = channel.getHistoryFromBeginning(1).complete().getRetrievedHistory().get(0);
-		try (FileOutputStream fos = new FileOutputStream(messagesFile, false))
+		extractMessageFields(beginning);
+		fetchMessages(beginning.getIdLong(), channel.getLatestMessageIdLong());
+	}
+
+	private long getMostRecentIdLong() {
+		try (Statement statement = SharedConstants.DATABASE_CONNECTION.createStatement())
 		{
-			fos.write(new byte[Long.BYTES]);
-			fos.write(prepareMessage(beginning));
-		} catch (IOException e)
+			statement.execute("SELECT MAX(id) FROM "+tableName);
+			ResultSet rs = statement.getResultSet();
+			rs.next();
+			return rs.getLong(1);
+		} catch (SQLException e)
 		{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-			fetchMessages(beginning.getIdLong(), channel.getLatestMessageIdLong());
-	}
-
-	private byte[] prepareMessage(Message message) { return messageToBytes(message); }
-
-	private long getMostRecentIdLong() {
-	
+		return jda.getTextChannelById(channelId).getHistoryFromBeginning(1).complete().getRetrievedHistory().get(0).getIdLong();
 	}
 
 	/**
@@ -189,24 +189,64 @@ public class Messages {
 	 * @param record
 	 */
 	public void searchMessages(MessageProcessers processers) {
-		try (InputStream in = new FileInputStream(messagesFile);
-				BufferedInputStream buffer = new BufferedInputStream(in))
+		searchMessages(processers, getOldestIdLong(), getMostRecentIdLong());
+	}
+
+	private void searchMessages(MessageProcessers processers, long start, long end) { // TODO Auto-generated method stub
+		try (PreparedStatement statement = SharedConstants.DATABASE_CONNECTION.prepareStatement("SELECT * FROM "+tableName+" WHERE id BETWEEN ? AND ?"))
 		{
-			buffer.skip(Long.BYTES); // skip most recent id
-			byte[] lengthBytes = new byte[Integer.BYTES];
-			while (buffer.read(lengthBytes) > 0)
-			{// stop searching if the end of file has been reached
-				int length = Helper.bytesToInt(lengthBytes);
-				byte[] messageBytes = buffer.readNBytes((int) length);
-				OfflineMessage message = bytesToMessage(messageBytes);
-				processers.accept(message);
+			statement.setLong(1, start);
+			statement.setLong(2, end);
+			statement.execute();
+			ResultSet rs = statement.getResultSet();
+			while (rs.next());
+			{
+				//anything left null is not stored in database currently, obviously don't try to use any field thats null
+				Message message = new ReceivedMessage(rs.getLong("id"), 
+						null,
+						MessageType.fromId(rs.getInt("type")), 
+						new MessageReference(rs.getLong("referenceMessage"), rs.getLong("referenceChannel"), rs.getLong("referenceGuild"), null, jda), 
+						rs.getBoolean("fromWebHook"), 
+						false, 
+						null, 
+						null, 
+						rs.getBoolean("isTTS"), 
+						rs.getBoolean("isPinned"), 
+						rs.getString("content"), 
+						null, 
+						null, 
+						null, 
+						null, 
+						null, 
+						null, 
+						null, 
+						null, 
+						null, 
+						null, 
+						0, 
+						null);
 			}
-		} catch (IOException e)
+		} catch (SQLException e)
 		{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
+
+	private long getOldestIdLong() { // TODO Auto-generated method stub
+		try (Statement statement = SharedConstants.DATABASE_CONNECTION.createStatement())
+		{
+			statement.execute("SELECT MIN(id) FROM "+tableName);
+			ResultSet rs = statement.getResultSet();
+			rs.next();
+			return rs.getLong(1);
+		} catch (SQLException e)
+		{
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return jda.getTextChannelById(channelId).getHistoryFromBeginning(1).complete().getRetrievedHistory().get(0).getIdLong();
+}
 
 	public long getId() {
 		// TODO Auto-generated method stub
@@ -251,7 +291,7 @@ public class Messages {
 		);
 	}
 	
-	public void extractMessageFields(Message message) {
+	public synchronized void extractMessageFields(Message message) {
 		//The mention lists are evaluated from the content so no need to store them
 		//commented out code means its something I would like to store but am too lazy to figure out how/don't need to right now
 		//MessageActivity messageActivity = message.getActivity();
@@ -276,21 +316,21 @@ public class Messages {
 		
 		try
 		{
-			statement.setLong(1, author);
-			statement.setString(2, content);
-			statement.setLong(3, flags);
-			statement.setBoolean(4, fromWebhook);
-			statement.setLong(5, id);
-			statement.setBoolean(6, isTTS);
+			messageInsertStatement.setLong(1, author);
+			messageInsertStatement.setString(2, content);
+			messageInsertStatement.setLong(3, flags);
+			messageInsertStatement.setBoolean(4, fromWebhook);
+			messageInsertStatement.setLong(5, id);
+			messageInsertStatement.setBoolean(6, isTTS);
 			//putting the message reference in
-			statement.setLong(7, messageReference.getMessageIdLong());
-			statement.setLong(8, messageReference.getChannelIdLong());
-			statement.setLong(9, messageReference.getGuildIdLong());
+			messageInsertStatement.setLong(7, messageReference.getMessageIdLong());
+			messageInsertStatement.setLong(8, messageReference.getChannelIdLong());
+			messageInsertStatement.setLong(9, messageReference.getGuildIdLong());
 			
 			//statement.setString(10, nonce); will I ever need this, also can't get a good max length for this so hard to put into database, also apparently an int sometimes??? idk
-			statement.setBoolean(10, pinned);
-			statement.setInt(11, type.getId());
-			statement.execute();
+			messageInsertStatement.setBoolean(10, pinned);
+			messageInsertStatement.setInt(11, type.getId());
+			messageInsertStatement.execute();
 		} catch (SQLException e)
 		{
 			// TODO Auto-generated catch block

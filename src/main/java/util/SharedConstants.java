@@ -68,7 +68,7 @@ public class SharedConstants {
 					String tableName = "CHANNEL"+channel.getId();
 					if (existingTables.contains(tableName)) continue;
 					logger.info("Creating table for "+channel.toString());
-					statement.execute("CREATE TABLE "+tableName+"(author BIGINT, content VARCHAR(2000), flags BIGINT, isfromWebHook BOOLEAN, id BIGINT, isTTS BOOLEAN, referenceMessage BIGINT, referenceChannel BIGINT, referenceGuild BIGINT, isPinned BOOLEAN, type INT)");
+					statement.execute("CREATE TABLE "+tableName+"(author BIGINT, content VARCHAR(2000), flags BIGINT, fromWebHook BOOLEAN, id BIGINT PRIMARY KEY, isTTS BOOLEAN, referenceMessage BIGINT, referenceChannel BIGINT, referenceGuild BIGINT, isPinned BOOLEAN, type INT)");
 				}
 			}
 			DATABASE_CONNECTION.commit();
