@@ -40,7 +40,7 @@ public class SharedConstants {
 		
 		public static void init(JDA jda) throws SQLException {
 			SharedConstants.jda = jda;
-			DATABASE_CONNECTION = DriverManager.getConnection(SQL_CONNECTION);
+			DATABASE_CONNECTION = DriverManager.getConnection(SQL_CONNECTION+";create=true");
 			DATABASE_CONNECTION.setAutoCommit(false);
 			if (jda == null) return;
 			Logger logger = LoggerFactory.getLogger(SharedConstants.class);
@@ -51,26 +51,22 @@ public class SharedConstants {
 			{
 				existingTables.add(tables.getString("TABLE_NAME"));
 			}
-			for (String s : existingTables)
-			{
-				logger.debug(s);
-			}
 			List<Guild> guilds = jda.getGuilds();
 			for (Guild guild : guilds)
 			{
 				List<GuildChannel> channels = guild.getChannels();
 				for (GuildChannel channel : channels)
 				{
-					logger.debug(channel.toString());
-					logger.debug(channel.getType().toString());
 					if (channel.getType() != ChannelType.TEXT) continue;
-					logger.debug("foo");
 					String tableName = "CHANNEL"+channel.getId();
 					if (existingTables.contains(tableName)) continue;
 					logger.info("Creating table for "+channel.toString());
 					statement.execute("CREATE TABLE "+tableName+"(author BIGINT, content VARCHAR(2000), flags BIGINT, fromWebHook BOOLEAN, id BIGINT PRIMARY KEY, isTTS BOOLEAN, referenceMessage BIGINT, referenceChannel BIGINT, referenceGuild BIGINT, isPinned BOOLEAN, type INT)");
 				}
 			}
+			
+			if (!existingTables.contains("LYRICSTORE")) statement.execute("CREATE TABLE lyricStore(internalID SMALLINT GENERATED ALWAYS AS IDENTITY (INCREMENT BY 1, CYCLE), authorid bigint, lyric varchar(4000), name varchar(128), artist varchar(128))");
+			
 			DATABASE_CONNECTION.commit();
 		}
 }

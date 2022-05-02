@@ -1,53 +1,22 @@
 package record;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.RandomAccessFile;
-import java.io.Reader;
-import java.nio.charset.StandardCharsets;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Timestamp;
-import java.time.OffsetDateTime;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.DuplicateFormatFlagsException;
 import java.util.List;
-import java.util.Scanner;
-
-import org.quartz.utils.counter.sampled.TimeStampedCounterValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.Message.Attachment;
-import net.dv8tion.jda.api.entities.Message.Interaction;
-import net.dv8tion.jda.api.entities.MessageActivity;
-import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.MessageHistory;
-import net.dv8tion.jda.api.entities.MessageReaction;
 import net.dv8tion.jda.api.entities.MessageReference;
-import net.dv8tion.jda.api.entities.MessageSticker;
 import net.dv8tion.jda.api.entities.MessageType;
 import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.internal.entities.ReceivedMessage;
 import recorders.MessageProcessers;
-import recorders.Recorder;
-import util.Helper;
 import util.SharedConstants;
 
 /*
@@ -72,7 +41,7 @@ public class Messages {
 		this.channelId = channelId;
 		this.jda = jda;
 		this.tableName = "channel"+channelId;
-		this.messageInsertStatement = SharedConstants.DATABASE_CONNECTION.prepareStatement("INSERT INTO "+tableName+"VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+		this.messageInsertStatement = SharedConstants.DATABASE_CONNECTION.prepareStatement("INSERT INTO "+tableName+" VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 	}
 
 	public boolean sync() {
@@ -155,11 +124,12 @@ public class Messages {
 
 	/**
 	 * Wipes existing file and rewrites from beginning to end of channel
-	 *
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * 
+	 * @throws SQLException 
 	 */
-	public void fetchMessages() {
+	public void fetchMessages() throws SQLException {
+		SharedConstants.DATABASE_CONNECTION.createStatement().execute("DROP TABLE lyricStore");
+		SharedConstants.DATABASE_CONNECTION.commit();
 		TextChannel channel = jda.getTextChannelById(channelId);
 		Message beginning = channel.getHistoryFromBeginning(1).complete().getRetrievedHistory().get(0);
 		extractMessageFields(beginning);
@@ -202,10 +172,7 @@ public class Messages {
 			while (rs.next());
 			{
 				//anything left null is not stored in database currently, obviously don't try to use any field thats null
-				Message message = new ReceivedMessage(rs.getLong("id"), 
-						null,
-						MessageType.fromId(rs.getInt("type")), 
-						new MessageReference(rs.getLong("referenceMessage"), rs.getLong("referenceChannel"), rs.getLong("referenceGuild"), null, jda), 
+				Message message = new ReceivedMessage(rs.getLong("id"), null,MessageType.fromId(rs.getInt("type")), new MessageReference(rs.getLong("referenceMessage"), rs.getLong("referenceChannel"), rs.getLong("referenceGuild"), null, jda), 
 						rs.getBoolean("fromWebHook"), 
 						false, 
 						null, 
@@ -225,6 +192,7 @@ public class Messages {
 						null, 
 						0, 
 						null);
+				processers.accept(message);
 			}
 		} catch (SQLException e)
 		{
@@ -252,44 +220,6 @@ public class Messages {
 		// TODO Auto-generated method stub
 		return channelId;
 	}
-
-	public static byte[] messageToBytes(Message message) {
-		byte[] content = message.getContentRaw().getBytes(StandardCharsets.UTF_16BE);
-		byte[] id = Helper.toBytes(message.getIdLong());
-		byte[] authorId = Helper.toBytes(message.getAuthor().getIdLong());
-		// List<MessageReaction> reactions = message.getReactions();
-
-		int lengthInteger = content.length + id.length + authorId.length;
-		byte[] length = Helper.toBytes(lengthInteger);
-		byte[] messageBytes = new byte[lengthInteger + length.length]; // leave enough room for the length integer
-		int offset = 0; // help keep track of byte offset
-		System.arraycopy(length, 0, messageBytes, offset, length.length); // copy length to start
-		offset += length.length;
-		System.arraycopy(id, 0, messageBytes, offset, id.length); // copy message id in
-		offset += id.length;
-		System.arraycopy(authorId, 0, messageBytes, offset, authorId.length); // copy author id in
-		offset += authorId.length;
-		System.arraycopy(content, 0, messageBytes, offset, content.length); // copy message content in
-		offset += content.length;
-		return messageBytes;
-	}
-
-	public static OfflineMessage bytesToMessage(byte[] bytes) {
-		byte[] id = new byte[Long.BYTES];
-		byte[] authorId = new byte[Long.BYTES];
-		int offset = 0;// skip the length integer
-		System.arraycopy(bytes, offset, id, 0, id.length); // copy id out of bytes
-		offset += id.length;
-		System.arraycopy(bytes, offset, authorId, 0, authorId.length); // copy authorId out of bytes
-		offset += authorId.length;
-		byte[] content = new byte[bytes.length - offset];
-		System.arraycopy(bytes, offset, content, 0, content.length); // copy content out of bytes
-		offset += content.length;
-		return new OfflineMessage(
-				new String(content, StandardCharsets.UTF_16BE), null, false, Helper.bytesToLong(id),
-				Helper.bytesToLong(authorId)
-		);
-	}
 	
 	public synchronized void extractMessageFields(Message message) {
 		//The mention lists are evaluated from the content so no need to store them
@@ -314,6 +244,15 @@ public class Messages {
 		//List<MessageSticker> stickers = message.getStickers();
 		MessageType type = message.getType();
 		
+		long referenceId = 0, referenceChannel = 0, referenceGuild = 0;
+		if (messageReference != null)
+		{
+			referenceId = messageReference.getMessageIdLong();
+			referenceChannel = messageReference.getChannelIdLong();
+			referenceGuild = messageReference.getGuildIdLong();
+		}
+		
+		
 		try
 		{
 			messageInsertStatement.setLong(1, author);
@@ -323,14 +262,14 @@ public class Messages {
 			messageInsertStatement.setLong(5, id);
 			messageInsertStatement.setBoolean(6, isTTS);
 			//putting the message reference in
-			messageInsertStatement.setLong(7, messageReference.getMessageIdLong());
-			messageInsertStatement.setLong(8, messageReference.getChannelIdLong());
-			messageInsertStatement.setLong(9, messageReference.getGuildIdLong());
+			messageInsertStatement.setLong(7, referenceId);
+			messageInsertStatement.setLong(8, referenceChannel);
+			messageInsertStatement.setLong(9, referenceGuild);
 			
 			//statement.setString(10, nonce); will I ever need this, also can't get a good max length for this so hard to put into database, also apparently an int sometimes??? idk
 			messageInsertStatement.setBoolean(10, pinned);
 			messageInsertStatement.setInt(11, type.getId());
-			messageInsertStatement.execute();
+			messageInsertStatement.executeUpdate();
 		} catch (SQLException e)
 		{
 			// TODO Auto-generated catch block

@@ -68,7 +68,13 @@ public class Channels {
 		for (Messages messages : channels.values())
 		{
 			long start = System.currentTimeMillis();
-			messages.fetchMessages();
+			try
+			{
+				messages.fetchMessages();
+			} catch (SQLException e)
+			{
+				jda.getTextChannelById(channel).sendMessage("Failed to drop table of channel <#"+messages.getId()+">");
+			}
 			long end = System.currentTimeMillis();
 			String debug = "Fetched <#" + messages.getId() + "> in " + (end - start) + " ms";
 			logger.info(debug);
