@@ -19,6 +19,7 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.ChannelType;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.GuildChannel;
+import record.LyricStore;
 
 public class SharedConstants {
 
@@ -65,7 +66,11 @@ public class SharedConstants {
 				}
 			}
 			
-			if (!existingTables.contains("LYRICSTORE")) statement.execute("CREATE TABLE lyricStore(internalID SMALLINT GENERATED ALWAYS AS IDENTITY (INCREMENT BY 1, CYCLE), authorid bigint, lyric varchar(4000), name varchar(128), artist varchar(128))");
+			if (!existingTables.contains(LyricStore.TABLE.toUpperCase())) 
+			{
+				logger.info("Creating table LyricStore");
+				statement.execute("CREATE TABLE "+LyricStore.TABLE+"(internalID SMALLINT GENERATED ALWAYS AS IDENTITY (INCREMENT BY 1, CYCLE), authorid bigint, lyric varchar(4000), name varchar(128), artist varchar(128))");
+			}
 			
 			DATABASE_CONNECTION.commit();
 		}

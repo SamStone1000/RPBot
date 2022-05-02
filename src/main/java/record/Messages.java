@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageHistory;
 import net.dv8tion.jda.api.entities.MessageReference;
@@ -158,11 +159,11 @@ public class Messages {
 	 * 
 	 * @param record
 	 */
-	public void searchMessages(MessageProcessers processers) {
-		searchMessages(processers, getOldestIdLong(), getMostRecentIdLong());
+	public void searchMessages(MessageProcessers processers, long guild) {
+		searchMessages(processers, getOldestIdLong(), getMostRecentIdLong(), guild);
 	}
 
-	private void searchMessages(MessageProcessers processers, long start, long end) { // TODO Auto-generated method stub
+	private void searchMessages(MessageProcessers processers, long start, long end, long guild) { // TODO Auto-generated method stub
 		try (PreparedStatement statement = SharedConstants.DATABASE_CONNECTION.prepareStatement("SELECT * FROM "+tableName+" WHERE id BETWEEN ? AND ?"))
 		{
 			statement.setLong(1, start);
@@ -172,6 +173,7 @@ public class Messages {
 			while (rs.next());
 			{
 				//anything left null is not stored in database currently, obviously don't try to use any field thats null
+				Member author = SharedConstants.jda.getGuildById(guild).getMemberById(rs.getLong("author"));
 				Message message = new ReceivedMessage(rs.getLong("id"), null,MessageType.fromId(rs.getInt("type")), new MessageReference(rs.getLong("referenceMessage"), rs.getLong("referenceChannel"), rs.getLong("referenceGuild"), null, jda), 
 						rs.getBoolean("fromWebHook"), 
 						false, 
@@ -181,8 +183,8 @@ public class Messages {
 						rs.getBoolean("isPinned"), 
 						rs.getString("content"), 
 						null, 
-						null, 
-						null, 
+						author.getUser(), 
+						author, 
 						null, 
 						null, 
 						null, 

@@ -48,7 +48,7 @@ public class Channels {
 
 	public void searchChannels(MessageProcessers processers) {
 		for (Messages messages : channels.values())
-		{ messages.searchMessages(processers); }
+		{ messages.searchMessages(processers, guildId); }
 	}
 
 	public void syncChannel(Message message) {
