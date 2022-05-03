@@ -33,8 +33,8 @@ public class Channels {
 	public Channels(JDA jda, long guildId) throws IOException, InterruptedException, SQLException {
 		this.jda = jda;
 		this.guildId = guildId;
-		channels = new TreeMap();
-		messageCounter = new TreeMap();
+		channels = new TreeMap<Long, Messages>();
+		messageCounter = new TreeMap<Long, MutableInteger>();
 		Guild guild = jda.getGuildById(guildId);
 		List<TextChannel> tempChannels = guild.getTextChannels();
 		new File(SharedConstants.MESSAGES_FOLDER).mkdirs();
@@ -80,5 +80,6 @@ public class Channels {
 			logger.info(debug);
 			jda.getTextChannelById(channel).sendMessage(debug).queue();
 		}
+		jda.getTextChannelById(channel).sendMessage("Finished fetching all channels!").queue();
 	}
 }
