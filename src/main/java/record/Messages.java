@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Collections;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,7 +73,7 @@ public class Messages {
 			TextChannel channel = jda.getTextChannelById(channelId);
 			do
 			{
-				MessageHistory history = channel.getHistoryAfter(start, 100).complete();
+				MessageHistory history = MessageHistory.getHistoryAfter(channel, Long.toString(start)).complete();
 				List<Message> messages = history.getRetrievedHistory();
 				for (int i = messages.size() - 1; i >= 0; i--)
 				{
@@ -129,11 +130,12 @@ public class Messages {
 	 * @throws SQLException 
 	 */
 	public void fetchMessages() throws SQLException {
-		SharedConstants.DATABASE_CONNECTION.createStatement().execute("DROP TABLE lyricStore");
+		SharedConstants.DATABASE_CONNECTION.createStatement().execute("TRUNCATE TABLE "+tableName);
 		SharedConstants.DATABASE_CONNECTION.commit();
 		TextChannel channel = jda.getTextChannelById(channelId);
 		Message beginning = channel.getHistoryFromBeginning(1).complete().getRetrievedHistory().get(0);
-		extractMessageFields(beginning);
+		if (!beginning.getAuthor().isBot())
+			extractMessageFields(beginning);
 		fetchMessages(beginning.getIdLong(), channel.getLatestMessageIdLong());
 	}
 
@@ -168,12 +170,13 @@ public class Messages {
 		{
 			statement.setLong(1, start);
 			statement.setLong(2, end);
-			statement.execute();
+			statement.executeQuery();
 			ResultSet rs = statement.getResultSet();
-			while (rs.next());
+			//if (rs.next()) SharedConstants.GLOBAL_LOGGER.debug("foo");
+			while (rs.next())
 			{
 				//anything left null is not stored in database currently, obviously don't try to use any field thats null
-				Member author = SharedConstants.jda.getGuildById(guild).getMemberById(rs.getLong("author"));
+				Member author = SharedConstants.jda.getGuildById(guild).retrieveMemberById(rs.getLong("author"), false).complete();
 				Message message = new ReceivedMessage(rs.getLong("id"), null,MessageType.fromId(rs.getInt("type")), new MessageReference(rs.getLong("referenceMessage"), rs.getLong("referenceChannel"), rs.getLong("referenceGuild"), null, jda), 
 						rs.getBoolean("fromWebHook"), 
 						false, 
@@ -186,15 +189,20 @@ public class Messages {
 						author.getUser(), 
 						author, 
 						null, 
-						null, 
-						null, 
-						null, 
-						null, 
-						null, 
-						null, 
-						0, 
+						null	, 
+						Collections.emptyList(), 
+						Collections.emptyList(), 
+						Collections.emptyList(), 
+						Collections.emptyList(), 
+						Collections.emptyList(), 
+						(int) rs.getLong("flags"), 
 						null);
+				try {
 				processers.accept(message);
+				} catch (Exception e)
+				{
+					
+				}
 			}
 		} catch (SQLException e)
 		{
