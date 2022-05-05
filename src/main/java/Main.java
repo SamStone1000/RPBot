@@ -131,10 +131,7 @@ public class Main extends ListenerAdapter {
 		jda.addEventListener(kickedUserRoles);
 		jda.addEventListener(new LyricStore());
 
-		// welcome to jank city pop. 1
-		SharedConstants.jda = jda;
-
-		// jda.getPresence().setActivity(Activity.watching("for vore"));
+		
 
 		JobDetail freefallDetail = JobBuilder.newJob(RecurringMessage.class)
 				.withIdentity("FreeFall Reminder", "Recurring Messages")

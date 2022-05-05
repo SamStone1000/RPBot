@@ -3,12 +3,9 @@ package recorders;
 import java.io.File;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.NavigableMap;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import org.slf4j.LoggerFactory;
 
 import util.Helper;
 import util.MutableInteger;
@@ -42,7 +39,7 @@ public class Counter implements Recorder {
 		this.pattern = pattern;
 		if (shouldResetCounts)
 		{
-			this.counts = new TreeMap();
+			this.counts = new TreeMap<Long, MutableInteger>();
 		} else
 		{
 			this.counts = counts;

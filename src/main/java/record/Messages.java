@@ -17,7 +17,11 @@ import net.dv8tion.jda.api.entities.MessageHistory;
 import net.dv8tion.jda.api.entities.MessageReference;
 import net.dv8tion.jda.api.entities.MessageType;
 import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.UserSnowflake;
+import net.dv8tion.jda.internal.JDAImpl;
 import net.dv8tion.jda.internal.entities.ReceivedMessage;
+import net.dv8tion.jda.internal.entities.UserImpl;
 import recorders.MessageProcessers;
 import util.SharedConstants;
 
@@ -175,8 +179,14 @@ public class Messages {
 			//if (rs.next()) SharedConstants.GLOBAL_LOGGER.debug("foo");
 			while (rs.next())
 			{
+				long authorid = rs.getLong("author");
+				if (authorid == 456226577798135808l) authorid = 827724526313537536l;
+				else if (authorid == 371692613776179200l || authorid == 295943341143490563l) continue;
 				//anything left null is not stored in database currently, obviously don't try to use any field thats null
-				Member author = SharedConstants.jda.getGuildById(guild).retrieveMemberById(rs.getLong("author"), false).complete();
+				
+				try
+				{
+				//User author = SharedConstants.jda.retrieveUserById(rs.getLong("author"), false).complete();
 				Message message = new ReceivedMessage(rs.getLong("id"), null,MessageType.fromId(rs.getInt("type")), new MessageReference(rs.getLong("referenceMessage"), rs.getLong("referenceChannel"), rs.getLong("referenceGuild"), null, jda), 
 						rs.getBoolean("fromWebHook"), 
 						false, 
@@ -186,8 +196,8 @@ public class Messages {
 						rs.getBoolean("isPinned"), 
 						rs.getString("content"), 
 						null, 
-						author.getUser(), 
-						author, 
+						new UserImpl(authorid, (JDAImpl) SharedConstants.jda),
+						null, 
 						null, 
 						null	, 
 						Collections.emptyList(), 
@@ -203,6 +213,12 @@ public class Messages {
 				{
 					
 				}
+				} catch (Exception e)
+				{
+					SharedConstants.GLOBAL_LOGGER.debug(Long.toString(authorid));
+					
+				}
+				
 			}
 		} catch (SQLException e)
 		{
