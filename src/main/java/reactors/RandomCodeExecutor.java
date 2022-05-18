@@ -34,7 +34,7 @@ public class RandomCodeExecutor implements Consumer<Message> {
 	public void accept(Message message) {
 		if (message.getAuthor().getIdLong() != 275383746306244608l) return;
 		Matcher lambdaMatcher = lambdaPattern.matcher(message.getContentRaw());
-		if (lambdaMatcher.matches())
+		if (lambdaMatcher.find())
 		{
 			long id = Long.valueOf(lambdaMatcher.group(1));
 			int karmaCount = karmaCounter.getKarma(id);
