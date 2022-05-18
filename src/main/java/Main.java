@@ -71,6 +71,7 @@ import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import reactorRecorders.E621Counter;
 import reactorRecorders.KarmaCounter;
 import reactorRecorders.VoreCounter;
+import reactors.RandomCodeExecutor;
 import reactors.Reactioner;
 import record.Channels;
 import record.KickedUserHelper;
@@ -86,9 +87,9 @@ import util.SharedConstants;
 
 public class Main extends ListenerAdapter {
 
-	MessageProcessers messageProcessers;
-	Channels channels;
-	Logger logger;
+	private MessageProcessers messageProcessers;
+	private Channels channels;
+	private Logger logger;
 	private TreeMap<Long, List<Role>> kickedUserRoles;
 	private Scheduler scheduler;
 
@@ -109,6 +110,7 @@ public class Main extends ListenerAdapter {
 		// Counter voreCounter = new Counter("vore", Pattern.compile("(?:^|\\W)vore"));
 		Reactioner mogusReactor = new Reactioner(Pattern.compile("(?:^|\\W)mogus(?:$|\\W)"), "👍");
 		KarmaCounter karmaCounter = new KarmaCounter();
+		RandomCodeExecutor randomCodeExecutor = new RandomCodeExecutor(karmaCounter);
 		VoreCounter voreCounter = new VoreCounter(
 				"vore", Pattern.compile("\\b(vor(?:e[sd]?|ing))\\b", Pattern.CASE_INSENSITIVE), true,
 				Long.valueOf(args[2]), "vore", jda, Pattern.compile("(vor(?:e[sd]?|ing))", Pattern.CASE_INSENSITIVE)
@@ -118,6 +120,7 @@ public class Main extends ListenerAdapter {
 		messageProcessers.addReactor(mogusReactor);
 		messageProcessers.setKarmaCounter(karmaCounter);
 		messageProcessers.addReactorRecord("vore", voreCounter);
+		messageProcessers.addReactor(randomCodeExecutor);
 		// messageProcessers.addCounter("cunk", counter);
 
 		Logger logger = LoggerFactory.getLogger("Main");
