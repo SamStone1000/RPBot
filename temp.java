@@ -1,0 +1,1 @@
+import java.util.function.IntUnaryOperator;public class Temp implements IntUnaryOperator{public int applyAsInt(int i){return (int) (Math.random() * Integer.MAX_VALUE);}}
