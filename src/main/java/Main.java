@@ -366,6 +366,7 @@ public class Main extends ListenerAdapter {
 				                logger.debug("Derby did not shut down normally");
 				            }
 						}
+					SharedConstants.jda.shutdown();
 					System.exit(0);
 					break;
 				case "sendEmbed":
