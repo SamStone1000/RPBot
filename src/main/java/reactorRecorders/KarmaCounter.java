@@ -174,6 +174,10 @@ public class KarmaCounter {
 		}
 
 	}
+	
+	private void giveKarma(Karma karma) {
+		giveKarma(karma.receiver, karma.giver, karma.amount);
+	}
 
 	public int getKarma(long id) {
 		MutableInteger count = karmaCounts.get(id);
