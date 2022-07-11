@@ -106,9 +106,14 @@ public class KarmaCounter {
 		Matcher shortcutFinder = shortcutPattern.matcher(message.getContentRaw());
 		if (shortcutFinder.find())
 		{
+			Message ref = message.getReferencedMessage();
+			if (ref != null)
+			{
 			String amount = shortcutFinder.group(2);
 			String decider = shortcutFinder.group(1);
 			Action action = Action.actionOf(decider);
+			if (action != null)
+			{
 			int karmaAmount;
 			if (amount != null)
 			{
@@ -117,10 +122,13 @@ public class KarmaCounter {
 			{
 				karmaAmount = 0; //doesn't matter
 			}
-			long receiver = message.getReferencedMessage().getAuthor().getIdLong();
+			long receiver = ref.getAuthor().getIdLong();
 			long giver = message.getAuthor().getIdLong();
 			Karma karma = new Karma(giver, receiver, action, karmaAmount);
+			giveKarma(karma);
 			receivingUsers.add(receiver);
+			}
+			}
 		}
 
 		if (!receivingUsers.isEmpty())
