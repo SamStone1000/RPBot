@@ -1,59 +1,34 @@
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.sql.SQLException;
-import java.text.ParseException;
-import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.TimeZone;
 import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
-import javax.imageio.ImageIO;
 import javax.security.auth.login.LoginException;
 
-import org.quartz.CronExpression;
 import org.quartz.CronScheduleBuilder;
 import org.quartz.JobBuilder;
-import org.quartz.JobDataMap;
 import org.quartz.JobDetail;
 import org.quartz.JobExecutionException;
-import org.quartz.ScheduleBuilder;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
-import org.quartz.SimpleTrigger;
 import org.quartz.Trigger;
 import org.quartz.TriggerBuilder;
 import org.quartz.impl.StdSchedulerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
-import net.dv8tion.jda.api.MessageBuilder;
-import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.Role;
-import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.User;
-import net.dv8tion.jda.api.events.Event;
-import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
-import net.dv8tion.jda.api.events.interaction.command.MessageContextInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -68,7 +43,6 @@ import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.requests.restaction.CommandListUpdateAction;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
-import reactorRecorders.E621Counter;
 import reactorRecorders.KarmaCounter;
 import reactorRecorders.VoreCounter;
 import reactors.RandomCodeExecutor;
@@ -82,10 +56,9 @@ import recorders.StatCounter;
 import scheduled.CringeDLB;
 import scheduled.DailyLyrics;
 import scheduled.RecurringMessage;
-import util.MutableInteger;
 import util.SharedConstants;
 
-public class Main extends ListenerAdapter {
+public class RPBot extends ListenerAdapter {
 
 	private MessageProcessers messageProcessers;
 	private Channels channels;
@@ -96,25 +69,32 @@ public class Main extends ListenerAdapter {
 	// args[0] should be the bots token, args[1] should be the Guild the bot works
 	// in, args[2] is the id of the channel to send vore to, args[3] is the id to
 	// send freefall reminders to
-	public static void main(String[] args)
-			throws LoginException, InterruptedException, IOException, NumberFormatException, SchedulerException, SQLException {
+	public static void main(String[] args) {
+		try {
+			start(args);
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.exit(1);
+		}
+	}
+
+	public static void start(String[] args) throws SQLException, InterruptedException, NumberFormatException,
+			IOException, SchedulerException, LoginException {
 		JDABuilder builder = JDABuilder.createLight(args[0], GatewayIntent.GUILD_MESSAGES, GatewayIntent.GUILD_MEMBERS);
 		// builder.addEventListeners(new Main());
 		builder.setMemberCachePolicy(MemberCachePolicy.ALL);
 		JDA jda = builder.build();
-		
-		System.setProperty("derby.language.sequence.preallocator", "1"); //prevent leaks from improper shutdowns
-		
+
+		System.setProperty("derby.language.sequence.preallocator", "1"); // prevent leaks from improper shutdowns
 
 		MessageProcessers messageProcessers = new MessageProcessers();
 		// Counter voreCounter = new Counter("vore", Pattern.compile("(?:^|\\W)vore"));
 		Reactioner mogusReactor = new Reactioner(Pattern.compile("(?:^|\\W)mogus(?:$|\\W)"), "👍");
 		KarmaCounter karmaCounter = new KarmaCounter();
 		RandomCodeExecutor randomCodeExecutor = new RandomCodeExecutor(karmaCounter);
-		VoreCounter voreCounter = new VoreCounter(
-				"vore", Pattern.compile("\\b(vor(?:e[sd]?|ing))\\b", Pattern.CASE_INSENSITIVE), true,
-				Long.valueOf(args[2]), "vore", jda, Pattern.compile("(vor(?:e[sd]?|ing))", Pattern.CASE_INSENSITIVE)
-		);
+		VoreCounter voreCounter = new VoreCounter("vore",
+				Pattern.compile("\\b(vor(?:e[sd]?|ing))\\b", Pattern.CASE_INSENSITIVE), true, Long.valueOf(args[2]),
+				"vore", jda, Pattern.compile("(vor(?:e[sd]?|ing))", Pattern.CASE_INSENSITIVE));
 
 		// messageProcessers.addCounter("vore", voreCounter);
 		messageProcessers.addReactor(mogusReactor);
@@ -130,11 +110,9 @@ public class Main extends ListenerAdapter {
 		Channels channels = new Channels(jda, Long.parseLong(args[1]));
 		KickedUserHelper kickedUserRoles = new KickedUserHelper();
 		Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
-		jda.addEventListener(new Main(messageProcessers, channels, logger, scheduler));
+		jda.addEventListener(new RPBot(messageProcessers, channels, logger, scheduler));
 		jda.addEventListener(kickedUserRoles);
 		jda.addEventListener(new LyricStore());
-
-		
 
 		JobDetail freefallDetail = JobBuilder.newJob(RecurringMessage.class)
 				.withIdentity("FreeFall Reminder", "Recurring Messages")
@@ -150,50 +128,35 @@ public class Main extends ListenerAdapter {
 				.inTimeZone(TimeZone.getTimeZone(ZoneOffset.of("-4")));
 		Trigger DLBTrigger = TriggerBuilder.newTrigger().withSchedule(DLBSchedule).build();
 		
-		JobDetail DLDetail = JobBuilder.newJob(DailyLyrics.class)
-				.withIdentity("Daily Lyric", "Recurring Messages")
-				.usingJobData("guild", Long.valueOf(args[1]))
-				.usingJobData("channel", 485967269512478721l).build();
+		JobDetail DLDetail = JobBuilder.newJob(DailyLyrics.class).withIdentity("Daily Lyric", "Recurring Messages")
+				.usingJobData("guild", Long.valueOf(args[1])).usingJobData("channel", 485967269512478721l).build();
 		CronScheduleBuilder DLSchedule = CronScheduleBuilder.cronSchedule("0 0 15 * * ?")
 				.inTimeZone(TimeZone.getTimeZone("America/Louisville"));
 		Trigger DLTrigger = TriggerBuilder.newTrigger().withSchedule(DLSchedule).build();
 
 		scheduler.scheduleJob(freefallDetail, freefallTrigger);
-		//scheduler.scheduleJob(DLBDetail, DLBTrigger);
+		// scheduler.scheduleJob(DLBDetail, DLBTrigger);
 		scheduler.scheduleJob(DLDetail, DLTrigger);
 
 		scheduler.start();
 
 		Guild guild = jda.getGuildById(args[1]);
 		CommandListUpdateAction commands = guild.updateCommands();
-		commands.addCommands(
-				Commands.slash("count", "Gets the current count of the specified word and/or user").addOptions(
-						new OptionData(OptionType.USER, "user", "The user you want to query").setRequired(true),
-						new OptionData(OptionType.STRING, "term", "The word you want to query about").setRequired(true)
-				)
-		);
-		commands.addCommands(
-				Commands.slash("rebuild", "Rebuilds stuff")
-						.addOption(OptionType.CHANNEL, "channel", "The specific channel to rebuild")
-		);
+		commands.addCommands(Commands.slash("count", "Gets the current count of the specified word and/or user")
+				.addOptions(new OptionData(OptionType.USER, "user", "The user you want to query").setRequired(true),
+						new OptionData(OptionType.STRING, "term", "The word you want to query about")
+								.setRequired(true)));
+		commands.addCommands(Commands.slash("rebuild", "Rebuilds stuff").addOption(OptionType.CHANNEL, "channel",
+				"The specific channel to rebuild"));
 		commands.addCommands(Commands.slash("recount", "Recounts stuff"));
-		commands.addCommands(
-				Commands.slash("karma", "Checks karma").addOptions(
-						new OptionData(OptionType.USER, "user", "The user to get the current karma count of")
-								.setRequired(true)
-				)
-		);
-		commands.addCommands(
-				Commands.slash("given", "Checks how much karma a user has given out").addOptions(
-						new OptionData(OptionType.USER, "user", "The user to give karma to").setRequired(true)
-				)
-		);
-		commands.addCommands(
-				Commands.slash("admin", "Collection of commands to help with adminning").addOptions(
-						new OptionData(OptionType.STRING, "command", "The command to fire").setRequired(true),
-						new OptionData(OptionType.STRING, "arguments", "Arguments to pass to the command")
-				)
-		);
+		commands.addCommands(Commands.slash("karma", "Checks karma")
+				.addOptions(new OptionData(OptionType.USER, "user", "The user to get the current karma count of")
+						.setRequired(true)));
+		commands.addCommands(Commands.slash("given", "Checks how much karma a user has given out")
+				.addOptions(new OptionData(OptionType.USER, "user", "The user to give karma to").setRequired(true)));
+		commands.addCommands(Commands.slash("admin", "Collection of commands to help with adminning").addOptions(
+				new OptionData(OptionType.STRING, "command", "The command to fire").setRequired(true),
+				new OptionData(OptionType.STRING, "arguments", "Arguments to pass to the command")));
 		commands.addCommands(Commands.context(Type.USER, "kick"));
 		commands.addCommands(Commands.slash(LyricStore.COMMAND_NAME, "Allows you to add a lyric to be sent later"));
 		// commands.addCommands(Commands.message("Give"));
@@ -201,7 +164,7 @@ public class Main extends ListenerAdapter {
 		// new CringeDLB().execute(null);
 	}
 
-	public Main(MessageProcessers processers, Channels channels, Logger logger, Scheduler scheduler) {
+	public RPBot(MessageProcessers processers, Channels channels, Logger logger, Scheduler scheduler) {
 		this.messageProcessers = processers;
 		this.channels = channels;
 		this.logger = logger;
