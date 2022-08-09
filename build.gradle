@@ -48,7 +48,7 @@ dependencies {
 
 application {
     // Define the main class for the application.
-    mainClass = 'Main'
+    mainClass = 'RPBot'
 }
 
 tasks.named('test') {
