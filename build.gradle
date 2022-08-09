@@ -57,4 +57,4 @@ tasks.named('test') {
 }
 
 compileJava.options.encoding = "UTF-8"
-mainClassName = "Main"
+mainClassName = "RPBot"
