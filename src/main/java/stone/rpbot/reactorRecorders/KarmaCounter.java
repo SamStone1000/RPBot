@@ -1,9 +1,7 @@
 package stone.rpbot.reactorRecorders;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -11,11 +9,9 @@ import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.User;
 import stone.rpbot.util.Helper;
 import stone.rpbot.util.MutableInteger;
 import stone.rpbot.util.SharedConstants;
@@ -106,9 +102,14 @@ public class KarmaCounter {
 		Matcher shortcutFinder = shortcutPattern.matcher(message.getContentRaw());
 		if (shortcutFinder.find())
 		{
+			Message ref = message.getReferencedMessage();
+			if (ref != null)
+			{
 			String amount = shortcutFinder.group(2);
 			String decider = shortcutFinder.group(1);
 			Action action = Action.actionOf(decider);
+			if (action != null)
+			{
 			int karmaAmount;
 			if (amount != null)
 			{
@@ -117,10 +118,13 @@ public class KarmaCounter {
 			{
 				karmaAmount = 0; //doesn't matter
 			}
-			long receiver = message.getReferencedMessage().getAuthor().getIdLong();
+			long receiver = ref.getAuthor().getIdLong();
 			long giver = message.getAuthor().getIdLong();
 			Karma karma = new Karma(giver, receiver, action, karmaAmount);
+			giveKarma(karma);
 			receivingUsers.add(receiver);
+		}
+	}
 		}
 
 		if (!receivingUsers.isEmpty())
