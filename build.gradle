@@ -48,7 +48,7 @@ dependencies {
 
 application {
     // Define the main class for the application.
-    mainClass = 'RPBot'
+    mainClass = 'stone.rpbot.RPBot'
 }
 
 tasks.named('test') {
@@ -57,4 +57,4 @@ tasks.named('test') {
 }
 
 compileJava.options.encoding = "UTF-8"
-mainClassName = "RPBot"
+mainClassName = "stone.rpbot.RPBot"

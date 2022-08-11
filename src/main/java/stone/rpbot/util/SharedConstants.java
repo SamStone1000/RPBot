@@ -10,8 +10,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
-import org.quartz.Scheduler;
-import org.quartz.impl.StdSchedulerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,5 +71,33 @@ public class SharedConstants {
 			}
 			
 			DATABASE_CONNECTION.commit();
+		}
+
+		static
+		{
+			Runtime.getRuntime().addShutdownHook(new Thread(() ->
+			{
+				try
+				{
+					SCHEDULER.shutdown();
+					DATABASE_CONNECTION.close();
+				} catch (SQLException se)
+				{
+					if (((se.getErrorCode() == 50000) && ("XJ015".equals(se.getSQLState()))))
+					{
+						// we got the expected exception
+						GLOBAL_LOGGER.debug("Derby shut down normally");
+						// Note that for single database shutdown, the expected
+						// SQL state is "08006", and the error code is 45000.
+					}
+					else
+					{
+						// if the error code or SQLState is different, we have
+						// an unexpected exception (shutdown failed)
+						GLOBAL_LOGGER.debug("Derby did not shut down normally");
+					}
+				}
+				jda.shutdown();
+			}));
 		}
 }

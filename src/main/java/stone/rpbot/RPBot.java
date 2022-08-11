@@ -308,29 +308,6 @@ public class RPBot extends ListenerAdapter {
 				case "shutdown":
 					event.reply("ok").complete();
 					if (event.getUser().getIdLong() == 275383746306244608l)
-						try
-						{
-							scheduler.shutdown();
-							SharedConstants.DATABASE_CONNECTION.close();
-						} catch (SchedulerException e)
-						{
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						} catch (SQLException se)
-						{
-							if (( (se.getErrorCode() == 50000)
-				                    && ("XJ015".equals(se.getSQLState()) ))) {
-				                // we got the expected exception
-				                logger.debug("Derby shut down normally");
-				                // Note that for single database shutdown, the expected
-				                // SQL state is "08006", and the error code is 45000.
-				            } else {
-				                // if the error code or SQLState is different, we have
-				                // an unexpected exception (shutdown failed)
-				                logger.debug("Derby did not shut down normally");
-				            }
-						}
-					SharedConstants.jda.shutdown();
 					System.exit(0);
 					break;
 				case "sendEmbed":
