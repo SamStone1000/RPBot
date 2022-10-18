@@ -88,6 +88,12 @@ public interface GameOfLife {
 		public String toString() {
 			return String.format("{%d, %d)", x, y);
 		}
+
+		@Override
+		public boolean equals(Object obj) {
+			Coordinate other = (Coordinate) obj;
+			return this.x == other.x && this.y == other.y;
+		}
 	}
 
 	public enum State {
@@ -124,5 +130,5 @@ public interface GameOfLife {
 	/**
 	 * @return
 	 */
-	public String draw();
+	public char[] draw();
 }

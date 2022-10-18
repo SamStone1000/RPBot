@@ -19,6 +19,7 @@ package stone.rpbot.slash.conway;
 
 import java.util.Scanner;
 
+import net.dv8tion.jda.api.entities.Message;
 import stone.rpbot.slash.conway.GameOfLife.Coordinate;
 
 /**
@@ -35,6 +36,7 @@ public class ConwayManager {
 
 	private GameOfLife game;
 	private Coordinate cursor = new Coordinate(0, 0);
+	private Message message;
 	private boolean running = true;
 
 	public void moveCursor(Direction dir) {
@@ -70,8 +72,9 @@ public class ConwayManager {
 		System.out.println(game.draw());
 	}
 
-	public ConwayManager(int size) {
-		game = new SimpleGameOfLife(size);
+	public ConwayManager(int size, Message message) {
+		this.game = new SimpleGameOfLife(size);
+		this.message = message;
 	}
 
 	public static void main(String[] args) {

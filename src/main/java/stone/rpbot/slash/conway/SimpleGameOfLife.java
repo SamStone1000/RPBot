@@ -28,8 +28,8 @@ import stone.rpbot.slash.conway.ConwayManager.Direction;
  */
 public class SimpleGameOfLife implements GameOfLife {
 
-	private State[] oldBoard;
-	private State[] newBoard;
+	private State[][] oldBoard;
+	private State[][] newBoard;
 
 	private int width;
 	private int height;
@@ -40,22 +40,27 @@ public class SimpleGameOfLife implements GameOfLife {
 	public SimpleGameOfLife(int size) {
 		this.width = size;
 		this.height = size;
-		this.oldBoard = new State[size * size];
-		Arrays.fill(oldBoard, State.DEAD);
-		this.newBoard = new State[size * size];
+		this.oldBoard = new State[size][size];
+		for (int i = 0; i < size; i++)
+		{
+			Arrays.fill(oldBoard[i], State.DEAD);
+		}
+		this.newBoard = new State[size][size];
 	}
 
 	@Override
 	public void updateState() {
 		for (int y = 0; y < height; y++)
 		{
-			for (int x = 0; x < height; x++)
+			for (int x = 0; x < width; x++)
 			{
 				Coordinate coord = new Coordinate(x, y);
-				newBoard[to1D(coord)] = updateCell(coord);
+				newBoard[coord.getY()][coord.getX()] = updateCell(coord);
 			}
 		}
+		State[][] temp = oldBoard;
 		oldBoard = newBoard;
+		newBoard = temp;
 	}
 
 	/**
@@ -70,27 +75,31 @@ public class SimpleGameOfLife implements GameOfLife {
 				scan.move(Direction.UP, y);
 				scan.move(Direction.LEFT, x);
 				if (getState(scan) == State.ALIVE)
-					liveCount++;
+					if (!cell.equals(scan))
+						liveCount++;
 			}
+		if (getState(cell) == State.ALIVE)
 		return State.fromBoolean(liveCount >= 2 && liveCount <= 3);
+		else
+			return State.fromBoolean(liveCount == 3);
 	}
 
 	@Override
 	public State getState(Coordinate coord) {
-		if (coord.getX() > width)
+		if (coord.getX() >= width)
 			return State.DEAD;
-		if (coord.getY() > height)
+		if (coord.getY() >= height)
 			return State.DEAD;
 		if (coord.getX() < 0)
 			return State.DEAD;
 		if (coord.getY() < 0)
 			return State.DEAD;
-		return oldBoard[to1D(coord)];
+		return oldBoard[coord.getY()][coord.getX()];
 	}
 
 	@Override
 	public void setState(Coordinate coord, State state) {
-		oldBoard[to1D(coord)] = state;
+		oldBoard[coord.getY()][coord.getX()] = state;
 	}
 
 	public static void init(CommandListUpdateAction commands) {
@@ -98,18 +107,26 @@ public class SimpleGameOfLife implements GameOfLife {
 	}
 
 	@Override
-	public String draw() {
-		String str = "";
-		for (int i = 0; i < width * height; i++)
+	public char[] draw() {
+		char[] board = new char[width * height + height];
+		int i = 0;
+		for (int y = 0; y < height; y++)
 		{
-			if (oldBoard[i] == State.ALIVE)
-				str += "■";
-			else
-				str += "□";
-			if (i % width == 0 && i != 0)
-				str += "\n";
+			for (int x = 0; x < width; x++)
+			{
+				Coordinate current = new Coordinate(x, y);
+				char cell;
+				if (oldBoard[current.getY()][current.getX()] == State.ALIVE)
+					cell = '■';
+				else
+					cell = '□';
+				board[i] = cell;
+				i++;
+			}
+			board[i] = '\n';
+			i++;
 		}
-		return str;
+		return board;
 	}
 
 	private int to1D(Coordinate coord) {
