@@ -17,15 +17,12 @@
  */
 package stone.rpbot.slash;
 
-import net.dv8tion.jda.api.requests.restaction.CommandListUpdateAction;
-import stone.rpbot.slash.conway.SimpleGameOfLife;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 
 /**
  * 
  */
-public class Manager {
+public interface SlashCommand {
 
-	public static void init(CommandListUpdateAction commands) {
-		SimpleGameOfLife.init(commands);
-	}
+	public void onSlashCommand(SlashCommandInteractionEvent event);
 }

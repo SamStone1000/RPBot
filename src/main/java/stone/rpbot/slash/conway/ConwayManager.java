@@ -20,12 +20,18 @@ package stone.rpbot.slash.conway;
 import java.util.Scanner;
 
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.interactions.commands.build.Commands;
+import net.dv8tion.jda.api.requests.restaction.CommandListUpdateAction;
+import stone.rpbot.slash.PersistantCommand;
 import stone.rpbot.slash.conway.GameOfLife.Coordinate;
 
 /**
  * 
  */
-public class ConwayManager {
+public class ConwayManager implements PersistantCommand {
+
+	public static final String NAME = "conway";
 
 	/**
 		 * 
@@ -38,6 +44,10 @@ public class ConwayManager {
 	private Coordinate cursor = new Coordinate(0, 0);
 	private Message message;
 	private boolean running = true;
+
+	public ConwayManager(SlashCommandInteractionEvent event) {
+
+	}
 
 	public void moveCursor(Direction dir) {
 		cursor.nudge(dir);
@@ -72,15 +82,19 @@ public class ConwayManager {
 		System.out.println(game.draw());
 	}
 
-	public ConwayManager(int size, Message message) {
+	public ConwayManager(int size) {
 		this.game = new SimpleGameOfLife(size);
 		this.message = message;
+	}
+
+	public static void init(CommandListUpdateAction commands) {
+		commands.addCommands(Commands.slash("conway", "Starts a game of life"));
 	}
 
 	public static void main(String[] args) {
 		Scanner scanner = new Scanner(System.in);
 		System.out.println("Size?");
-		ConwayManager manager = new ConwayManager(scanner.nextInt());
+		ConwayManager manager = null;
 		boolean prepping = true;
 		do
 		{
@@ -110,5 +124,23 @@ public class ConwayManager {
 
 		} while (prepping);
 		manager.start();
+	}
+
+	@Override
+	public void onSlashCommand(SlashCommandInteractionEvent event) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void run() {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void init(SlashCommandInteractionEvent event) {
+		// TODO Auto-generated method stub
+
 	}
 }

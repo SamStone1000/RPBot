@@ -19,8 +19,6 @@ package stone.rpbot.slash.conway;
 
 import java.util.Arrays;
 
-import net.dv8tion.jda.api.interactions.commands.build.Commands;
-import net.dv8tion.jda.api.requests.restaction.CommandListUpdateAction;
 import stone.rpbot.slash.conway.ConwayManager.Direction;
 
 /**
@@ -100,10 +98,6 @@ public class SimpleGameOfLife implements GameOfLife {
 	@Override
 	public void setState(Coordinate coord, State state) {
 		oldBoard[coord.getY()][coord.getX()] = state;
-	}
-
-	public static void init(CommandListUpdateAction commands) {
-		commands.addCommands(Commands.slash("conway", "Starts a game of life"));
 	}
 
 	@Override
