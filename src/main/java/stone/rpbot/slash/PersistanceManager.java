@@ -22,8 +22,8 @@ import java.util.Map;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import net.dv8tion.jda.api.requests.restaction.CommandListUpdateAction;
 import stone.rpbot.slash.conway.ConwayManager;
 
 /**
@@ -33,22 +33,45 @@ public class PersistanceManager extends ListenerAdapter {
 	
 	ThreadPoolExecutor executor;
 	Map<String, PersistantCommandFactory> commands = new HashMap<>();
+	Map<Long, PersistantCommand> runningCommands = new HashMap<>();
 
 	public PersistanceManager() {
 
 	}
 
 	public void init() {
-		commands.put(ConwayManager.NAME, ConwayManager::new);
+		register(ConwayManager.NAME, ConwayManager::new);
 	}
 
-	public void register(String name, String desc, PersistantCommandFactory fact, CommandListUpdateAction update) {
+	public void register(String name, PersistantCommandFactory fact) {
 		commands.put(name, fact);
-
 	}
 
 	@Override
 	public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+		if (executor.getActiveCount() < executor.getMaximumPoolSize())
+		{
+			event.reply("Loading Persistant Message ...").setEphemeral(true)
+					.queue();
+			PersistantCommand command = commands.get(event.getName()).build(event);
+			runningCommands.put(command.getMessageIdLong(), command);
+			executor.execute(command);
+		}
+		else
+		{
+			event.reply(
+					"The PersistanceManager thread pool is full! (too many persistant messages are running currently, wait for one of the messages to finish)")
+					.setEphemeral(true).queue();
+		}
 
+	}
+
+	@Override
+	public void onButtonInteraction(ButtonInteractionEvent event) {
+		Long messageId = event.getMessageIdLong();
+		if (runningCommands.get(messageId).onButtonInteraction(event))
+		{
+			runningCommands.remove(messageId);
+		}
 	}
 }

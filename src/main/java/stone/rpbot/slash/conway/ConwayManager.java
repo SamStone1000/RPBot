@@ -127,12 +127,6 @@ public class ConwayManager implements PersistantCommand {
 	}
 
 	@Override
-	public void onSlashCommand(SlashCommandInteractionEvent event) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
 	public void run() {
 		// TODO Auto-generated method stub
 

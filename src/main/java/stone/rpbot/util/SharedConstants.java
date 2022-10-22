@@ -40,16 +40,6 @@ public class SharedConstants {
 		public static void init(JDA jda) throws SQLException {
 			SharedConstants.jda = jda;
 			List<Guild> guilds = jda.getGuilds();
-			try
-			{
-				for (Guild guild : guilds)
-				{
-
-				}
-			} catch (Exception e)
-			{
-				// cope
-			}
 
 			DATABASE_CONNECTION = DriverManager.getConnection(SQL_CONNECTION+";create=true");
 			DATABASE_CONNECTION.setAutoCommit(false);

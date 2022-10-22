@@ -17,12 +17,17 @@
  */
 package stone.rpbot.slash;
 
-import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 
 /**
  * 
  */
 public interface PersistantCommand extends Runnable {
 
-	public void init(SlashCommandInteractionEvent event);
+	/**
+	 * @return
+	 */
+	public long getMessageIdLong();
+
+	public boolean onButtonInteraction(ButtonInteractionEvent event);
 }

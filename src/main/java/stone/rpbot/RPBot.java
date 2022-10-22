@@ -57,7 +57,6 @@ import stone.rpbot.recorders.StatCounter;
 import stone.rpbot.scheduled.CringeDLB;
 import stone.rpbot.scheduled.DailyLyrics;
 import stone.rpbot.scheduled.RecurringMessage;
-import stone.rpbot.slash.SlashManager;
 import stone.rpbot.util.SharedConstants;
 
 public class RPBot extends ListenerAdapter {
@@ -144,7 +143,6 @@ public class RPBot extends ListenerAdapter {
 
 		Guild guild = jda.getGuildById(args[1]);
 		CommandListUpdateAction commands = guild.updateCommands();
-		SlashManager.init(commands);
 		commands.addCommands(Commands.slash("count", "Gets the current count of the specified word and/or user")
 				.addOptions(new OptionData(OptionType.USER, "user", "The user you want to query").setRequired(true),
 						new OptionData(OptionType.STRING, "term", "The word you want to query about")
