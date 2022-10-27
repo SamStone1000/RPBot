@@ -17,10 +17,12 @@
  */
 package stone.rpbot.slash.conway;
 
+import java.nio.CharBuffer;
 import java.util.Scanner;
 
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.requests.restaction.CommandListUpdateAction;
 import stone.rpbot.slash.PersistantCommand;
@@ -32,6 +34,7 @@ import stone.rpbot.slash.conway.GameOfLife.Coordinate;
 public class ConwayManager implements PersistantCommand {
 
 	public static final String NAME = "conway";
+	public static final String SIZE_OPTION = "size";
 
 	/**
 		 * 
@@ -40,13 +43,15 @@ public class ConwayManager implements PersistantCommand {
 		UP, DOWN, LEFT, RIGHT;
 	}
 
-	private GameOfLife game;
+	private SimpleGameOfLife game;
 	private Coordinate cursor = new Coordinate(0, 0);
 	private Message message;
 	private boolean running = true;
 
 	public ConwayManager(SlashCommandInteractionEvent event) {
-
+		int size = event.getOption(SIZE_OPTION).getAsInt();
+		this.game = new SimpleGameOfLife(size);
+		event.getChannel().sendMessage(game.draw());
 	}
 
 	public void moveCursor(Direction dir) {
@@ -79,12 +84,23 @@ public class ConwayManager implements PersistantCommand {
 	 * 
 	 */
 	private void redraw() {
-		System.out.println(game.draw());
+		message.editMessage(CharBuffer.wrap(game.draw())).queue((message) ->
+		{
+			this.message = message;
+		});
 	}
 
-	public ConwayManager(int size) {
-		this.game = new SimpleGameOfLife(size);
-		this.message = message;
+	private void drawWithCursor() {
+		char[] board = game.draw();
+		int position = game.to1D(cursor);
+		int height = game.getHeight();
+		int newLines = position / height;
+		position += newLines;
+		board[position] = '*';
+		message.editMessage(CharBuffer.wrap(board)).queue((message) ->
+		{
+			this.message = message;
+		});
 	}
 
 	public static void init(CommandListUpdateAction commands) {
@@ -136,5 +152,17 @@ public class ConwayManager implements PersistantCommand {
 	public void init(SlashCommandInteractionEvent event) {
 		// TODO Auto-generated method stub
 
+	}
+
+	@Override
+	public long getMessageIdLong() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public boolean onButtonInteraction(ButtonInteractionEvent event) {
+		// TODO Auto-generated method stub
+		return false;
 	}
 }

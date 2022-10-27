@@ -74,4 +74,8 @@ public class PersistanceManager extends ListenerAdapter {
 			runningCommands.remove(messageId);
 		}
 	}
+
+	public class Builder {
+
+	}
 }

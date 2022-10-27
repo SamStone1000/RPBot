@@ -30,4 +30,16 @@ public interface PersistantCommand extends Runnable {
 	public long getMessageIdLong();
 
 	public boolean onButtonInteraction(ButtonInteractionEvent event);
+
+	public static String getName() {
+		return null;
+	};
+
+	public static String getSubCommandName() {
+		return null;
+	};
+
+	public static String getSubCommandGroupName() {
+		return null;
+	};
 }

@@ -123,8 +123,12 @@ public class SimpleGameOfLife implements GameOfLife {
 		return board;
 	}
 
-	private int to1D(Coordinate coord) {
+	public int to1D(Coordinate coord) {
 		return coord.getY() * height + coord.getX();
+	}
+
+	public int getHeight() {
+		return height;
 	}
 
 }
