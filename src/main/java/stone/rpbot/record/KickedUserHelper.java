@@ -2,12 +2,9 @@ package stone.rpbot.record;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -18,14 +15,11 @@ import java.util.Date;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.Timer;
-import java.util.TimerTask;
 import java.util.TreeSet;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
@@ -253,12 +247,13 @@ public class KickedUserHelper extends ListenerAdapter {
 	public static BigInteger kickForVore(Member member, int voreCount) {
 		int consequenceMeter = 0;
 		Guild guild = member.getGuild();
+		long id = member.getIdLong();
 		if (!member.getRoles().contains(guild.getRoleById(949142927567908886l)))
 			consequenceMeter++;
-		if (member.getIdLong() == 248241320441806851l)
+		if (id == 248241320441806851l)
 			consequenceMeter++;
-//		if (member.getIdLong() == 275383746306244608l) //no more special privileges for me
-//			consequenceMeter = -1;
+		if (id == 282722155085692929l) // for an endosomatophillia enjoyer
+			consequenceMeter = -1;
 		final BigInteger banDuration;
 		switch (consequenceMeter)
 		{

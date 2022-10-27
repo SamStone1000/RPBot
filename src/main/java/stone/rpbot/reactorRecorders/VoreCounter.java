@@ -11,7 +11,6 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import stone.rpbot.record.KickedUserHelper;
 import stone.rpbot.util.MutableInteger;
-import stone.rpbot.util.SharedConstants;
 
 public class VoreCounter extends E621Counter {
 
@@ -48,7 +47,6 @@ public class VoreCounter extends E621Counter {
 				}
 				}
 			}
-		}
 		if (shouldAffect)
 		{
 			// SharedConstants.GLOBAL_LOGGER.debug("1");
