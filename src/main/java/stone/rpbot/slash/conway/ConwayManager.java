@@ -93,6 +93,7 @@ public class ConwayManager implements PersistantCommand {
 				Button.of(ButtonStyle.DANGER, STOP, "Stop Game"));
 		initialMessage.setActionRows(row, row2);
 		this.message = event.getChannel().sendMessage(initialMessage.build()).complete();
+		drawWithCursor();
 	}
 
 	public void moveCursor(Direction dir) {
@@ -127,17 +128,36 @@ public class ConwayManager implements PersistantCommand {
 	 * 
 	 */
 	private void redraw() {
-		this.message = message.editMessage(CharBuffer.wrap(game.draw())).complete();
+		char[] board = game.draw();
+		char[] monoBoard = new char[board.length + 6];
+		System.arraycopy(board, 0, monoBoard, 3, board.length);
+		for (int i = 0; i < 3; i++)
+		{
+			monoBoard[i] = '`';
+			monoBoard[board.length + i + 3] = '`';
+		}
+		message.editMessage(CharBuffer.wrap(monoBoard)).queue((message) ->
+		{
+			this.message = message;
+		});
 	}
 
 	private void drawWithCursor() {
 		char[] board = game.draw();
+		char[] monoBoard = new char[board.length + 6];
 		int position = game.to1D(cursor);
 		int height = game.getHeight();
 		int newLines = position / height;
 		position += newLines;
-		board[position] = '*';
-		message.editMessage(CharBuffer.wrap(board)).queue((message) ->
+		board[position] = '+';
+
+		System.arraycopy(board, 0, monoBoard, 3, board.length);
+		for (int i = 0; i < 3; i++)
+		{
+			monoBoard[i] = '`';
+			monoBoard[board.length + i + 3] = '`';
+		}
+		message.editMessage(CharBuffer.wrap(monoBoard)).queue((message) ->
 		{
 			this.message = message;
 		});
@@ -186,6 +206,7 @@ public class ConwayManager implements PersistantCommand {
 	@Override
 	public void run() {
 		start();
+		message.editMessage(new MessageBuilder().append("Message is dead. Rice soup is not big.").build()).queue();
 	}
 
 	@Override
@@ -211,6 +232,8 @@ public class ConwayManager implements PersistantCommand {
 			case START:
 				return State.RUNNING;
 			case STOP:
+				message.editMessage(new MessageBuilder().append("Message is dead. Rice soup is not big.").build())
+						.queue();
 				running = false;
 				return State.DEAD;
 			}
