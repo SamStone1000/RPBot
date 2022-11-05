@@ -145,7 +145,7 @@ public class ConwayManager implements PersistantCommand {
 
 	public static void init(CommandListUpdateAction commands) {
 		commands.addCommands(Commands.slash("conway", "Starts a game of life").addOption(OptionType.INTEGER,
-				SIZE_OPTION, "The length of the sides of the square that makes up the game board"));
+				SIZE_OPTION, "The length of the sides of the square that makes up the game board", true));
 	}
 
 	public static void main(String[] args) {
