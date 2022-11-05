@@ -57,6 +57,9 @@ import stone.rpbot.recorders.StatCounter;
 import stone.rpbot.scheduled.CringeDLB;
 import stone.rpbot.scheduled.DailyLyrics;
 import stone.rpbot.scheduled.RecurringMessage;
+import stone.rpbot.slash.PersistanceManager;
+import stone.rpbot.slash.SlashManager;
+import stone.rpbot.slash.conway.ConwayManager;
 import stone.rpbot.util.SharedConstants;
 
 public class RPBot extends ListenerAdapter {
@@ -66,6 +69,9 @@ public class RPBot extends ListenerAdapter {
 	private Logger logger;
 	private TreeMap<Long, List<Role>> kickedUserRoles;
 	private Scheduler scheduler;
+
+	private static SlashManager slashes = new SlashManager();
+	private static PersistanceManager persistants = new PersistanceManager();
 
 	// args[0] should be the bots token, args[1] should be the Guild the bot works
 	// in, args[2] is the id of the channel to send vore to, args[3] is the id to
@@ -114,6 +120,7 @@ public class RPBot extends ListenerAdapter {
 		jda.addEventListener(new RPBot(messageProcessers, channels, logger, scheduler));
 		jda.addEventListener(kickedUserRoles);
 		jda.addEventListener(new LyricStore());
+		jda.addEventListener(persistants);
 
 		JobDetail freefallDetail = JobBuilder.newJob(RecurringMessage.class)
 				.withIdentity("FreeFall Reminder", "Recurring Messages")
@@ -161,6 +168,8 @@ public class RPBot extends ListenerAdapter {
 		commands.addCommands(Commands.context(Type.USER, "kick"));
 		commands.addCommands(Commands.slash(LyricStore.COMMAND_NAME, "Allows you to add a lyric to be sent later"));
 		// commands.addCommands(Commands.message("Give"));
+		persistants.init();
+		ConwayManager.init(commands);
 		commands.queue();
 		// new CringeDLB().execute(null);
 	}

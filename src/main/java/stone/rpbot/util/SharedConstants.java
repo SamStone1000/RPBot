@@ -39,6 +39,8 @@ public class SharedConstants {
 		
 		public static void init(JDA jda) throws SQLException {
 			SharedConstants.jda = jda;
+			List<Guild> guilds = jda.getGuilds();
+
 			DATABASE_CONNECTION = DriverManager.getConnection(SQL_CONNECTION+";create=true");
 			DATABASE_CONNECTION.setAutoCommit(false);
 			if (jda == null) return;
@@ -50,7 +52,6 @@ public class SharedConstants {
 			{
 				existingTables.add(tables.getString("TABLE_NAME"));
 			}
-			List<Guild> guilds = jda.getGuilds();
 			for (Guild guild : guilds)
 			{
 				List<GuildChannel> channels = guild.getChannels();
