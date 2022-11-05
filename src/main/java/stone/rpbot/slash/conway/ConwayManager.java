@@ -20,11 +20,17 @@ package stone.rpbot.slash.conway;
 import java.nio.CharBuffer;
 import java.util.Scanner;
 
+import net.dv8tion.jda.api.MessageBuilder;
+import net.dv8tion.jda.api.entities.Emoji;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
-import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle;
 import net.dv8tion.jda.api.requests.restaction.CommandListUpdateAction;
+import stone.rpbot.slash.PersistanceManager.State;
 import stone.rpbot.slash.PersistantCommand;
 import stone.rpbot.slash.conway.GameOfLife.Coordinate;
 
@@ -36,11 +42,34 @@ public class ConwayManager implements PersistantCommand {
 	public static final String NAME = "conway";
 	public static final String SIZE_OPTION = "size";
 
+	public static final String UP = "up";
+	public static final String DOWN = "down";
+	public static final String LEFT = "left";
+	public static final String RIGHT = "right";
+	public static final String START = "start";
+	public static final String TOGGLE = "toggle";
+	public static final String STOP = "stop";
+
 	/**
 		 * 
 		 */
 	public enum Direction {
 		UP, DOWN, LEFT, RIGHT;
+
+		public static Direction fromString(String str) {
+			switch (str) {
+			case "up":
+				return UP;
+			case "down":
+				return DOWN;
+			case "left":
+				return LEFT;
+			case "right":
+				return RIGHT;
+			default:
+				return null;
+			}
+		}
 	}
 
 	private SimpleGameOfLife game;
@@ -51,7 +80,19 @@ public class ConwayManager implements PersistantCommand {
 	public ConwayManager(SlashCommandInteractionEvent event) {
 		int size = event.getOption(SIZE_OPTION).getAsInt();
 		this.game = new SimpleGameOfLife(size);
-		event.getChannel().sendMessage(game.draw());
+		MessageBuilder initialMessage = new MessageBuilder();
+		initialMessage.setContent(new String(game.draw()));
+		ActionRow row = ActionRow.of(// IMPROVE THIS
+				Button.of(ButtonStyle.SECONDARY, START, "Start"),
+				Button.of(ButtonStyle.PRIMARY, UP, Emoji.fromUnicode("⬆️")),
+				Button.of(ButtonStyle.SECONDARY, TOGGLE, "Toggle"));
+
+		ActionRow row2 = ActionRow.of(Button.of(ButtonStyle.PRIMARY, LEFT, Emoji.fromUnicode("⬅️")),
+				Button.of(ButtonStyle.PRIMARY, DOWN, Emoji.fromUnicode("⬇️")),
+				Button.of(ButtonStyle.PRIMARY, RIGHT, Emoji.fromUnicode("➡️")),
+				Button.of(ButtonStyle.DANGER, STOP, "Stop Game"));
+		initialMessage.setActionRows(row, row2);
+		this.message = event.getChannel().sendMessage(initialMessage.build()).complete();
 	}
 
 	public void moveCursor(Direction dir) {
@@ -63,6 +104,8 @@ public class ConwayManager implements PersistantCommand {
 	}
 
 	public void start() {
+		this.message = message.editMessageComponents(ActionRow.of(Button.of(ButtonStyle.DANGER, STOP, "Stop Game")))
+				.complete();
 		while (running)
 		{
 			long currentTime = System.currentTimeMillis();
@@ -84,10 +127,7 @@ public class ConwayManager implements PersistantCommand {
 	 * 
 	 */
 	private void redraw() {
-		message.editMessage(CharBuffer.wrap(game.draw())).queue((message) ->
-		{
-			this.message = message;
-		});
+		this.message = message.editMessage(CharBuffer.wrap(game.draw())).complete();
 	}
 
 	private void drawWithCursor() {
@@ -104,7 +144,8 @@ public class ConwayManager implements PersistantCommand {
 	}
 
 	public static void init(CommandListUpdateAction commands) {
-		commands.addCommands(Commands.slash("conway", "Starts a game of life"));
+		commands.addCommands(Commands.slash("conway", "Starts a game of life").addOption(OptionType.INTEGER,
+				SIZE_OPTION, "The length of the sides of the square that makes up the game board"));
 	}
 
 	public static void main(String[] args) {
@@ -144,25 +185,36 @@ public class ConwayManager implements PersistantCommand {
 
 	@Override
 	public void run() {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void init(SlashCommandInteractionEvent event) {
-		// TODO Auto-generated method stub
-
+		start();
 	}
 
 	@Override
 	public long getMessageIdLong() {
-		// TODO Auto-generated method stub
-		return 0;
+		return message.getIdLong();
 	}
 
 	@Override
-	public boolean onButtonInteraction(ButtonInteractionEvent event) {
-		// TODO Auto-generated method stub
-		return false;
+	public State onButtonInteraction(String buttonId) {
+		Direction dir = Direction.fromString(buttonId);
+		if (dir != null)
+		{
+			moveCursor(dir);
+			drawWithCursor();
+			return State.BUILDING;
+		}
+		else
+		{
+			switch (buttonId) {
+			case TOGGLE:
+				toggleCursor();
+				return State.BUILDING;
+			case START:
+				return State.RUNNING;
+			case STOP:
+				running = false;
+				return State.DEAD;
+			}
+		}
+		return State.DEAD;
 	}
 }

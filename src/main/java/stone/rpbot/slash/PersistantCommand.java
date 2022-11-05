@@ -17,7 +17,7 @@
  */
 package stone.rpbot.slash;
 
-import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
+import stone.rpbot.slash.PersistanceManager.State;
 
 /**
  * 
@@ -29,8 +29,6 @@ public interface PersistantCommand extends Runnable {
 	 */
 	public long getMessageIdLong();
 
-	public boolean onButtonInteraction(ButtonInteractionEvent event);
-
 	public static String getName() {
 		return null;
 	};
@@ -41,5 +39,11 @@ public interface PersistantCommand extends Runnable {
 
 	public static String getSubCommandGroupName() {
 		return null;
-	};
+	}
+
+	/**
+	 * @param buttonId
+	 * @return
+	 */
+	public State onButtonInteraction(String buttonId);;
 }

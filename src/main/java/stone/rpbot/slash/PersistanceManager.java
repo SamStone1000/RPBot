@@ -19,7 +19,8 @@ package stone.rpbot.slash;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
@@ -31,12 +32,12 @@ import stone.rpbot.slash.conway.ConwayManager;
  */
 public class PersistanceManager extends ListenerAdapter {
 	
-	ThreadPoolExecutor executor;
+	ExecutorService executor;
 	Map<String, PersistantCommandFactory> commands = new HashMap<>();
 	Map<Long, PersistantCommand> runningCommands = new HashMap<>();
 
 	public PersistanceManager() {
-
+		this.executor = Executors.newCachedThreadPool();
 	}
 
 	public void init() {
@@ -49,33 +50,34 @@ public class PersistanceManager extends ListenerAdapter {
 
 	@Override
 	public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
-		if (executor.getActiveCount() < executor.getMaximumPoolSize())
-		{
 			event.reply("Loading Persistant Message ...").setEphemeral(true)
 					.queue();
 			PersistantCommand command = commands.get(event.getName()).build(event);
 			runningCommands.put(command.getMessageIdLong(), command);
-			executor.execute(command);
-		}
-		else
-		{
-			event.reply(
-					"The PersistanceManager thread pool is full! (too many persistant messages are running currently, wait for one of the messages to finish)")
-					.setEphemeral(true).queue();
-		}
 
 	}
 
 	@Override
 	public void onButtonInteraction(ButtonInteractionEvent event) {
+		event.deferEdit().queue();
 		Long messageId = event.getMessageIdLong();
-		if (runningCommands.get(messageId).onButtonInteraction(event))
-		{
+		PersistantCommand command = runningCommands.get(messageId);
+		State commandState = command.onButtonInteraction(event.getComponentId());
+		switch (commandState) {
+		case RUNNING:
+			executor.execute(command);
+			break;
+		case DEAD:
 			runningCommands.remove(messageId);
+			break;
 		}
 	}
 
 	public class Builder {
 
+	}
+
+	public enum State {
+		BUILDING, RUNNING, DEAD;
 	}
 }
