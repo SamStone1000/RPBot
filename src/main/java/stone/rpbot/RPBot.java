@@ -44,6 +44,7 @@ import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.requests.restaction.CommandListUpdateAction;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
+import net.dv8tion.jda.api.utils.cache.CacheFlag;
 import stone.rpbot.reactorRecorders.KarmaCounter;
 import stone.rpbot.reactorRecorders.VoreCounter;
 import stone.rpbot.reactors.RandomCodeExecutor;
@@ -90,6 +91,7 @@ public class RPBot extends ListenerAdapter {
 		JDABuilder builder = JDABuilder.createLight(args[0], GatewayIntent.GUILD_MESSAGES, GatewayIntent.GUILD_MEMBERS);
 		// builder.addEventListeners(new Main());
 		builder.setMemberCachePolicy(MemberCachePolicy.ALL);
+		builder.enableCache(CacheFlag.ROLE_TAGS);
 		JDA jda = builder.build();
 
 		System.setProperty("derby.language.sequence.preallocator", "1"); // prevent leaks from improper shutdowns
@@ -358,6 +360,11 @@ public class RPBot extends ListenerAdapter {
 					event.reply("Alrighty then!").queue();
 					Member member = event.getGuild().retrieveMemberById(event.getOption("arguments").getAsString()).complete();
 					KickedUserHelper.readRoles(member);
+					break;
+				case "saveRoles":
+					KickedUserHelper.saveAll(event.getGuild());
+					event.reply("Saved them all!").queue();
+					break;
 				}
 			} else
 			{

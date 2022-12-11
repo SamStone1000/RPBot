@@ -50,10 +50,13 @@ public class PersistanceManager extends ListenerAdapter {
 
 	@Override
 	public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+		if (commands.containsKey(event.getName()))
+				{
 			event.reply("Loading Persistant Message ...").setEphemeral(true)
 					.queue();
 			PersistantCommand command = commands.get(event.getName()).build(event);
 			runningCommands.put(command.getMessageIdLong(), command);
+				}
 
 	}
 

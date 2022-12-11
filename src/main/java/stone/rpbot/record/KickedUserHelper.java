@@ -15,7 +15,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.Timer;
-import java.util.TreeSet;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +26,8 @@ import net.dv8tion.jda.api.entities.PrivateChannel;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.guild.GuildUnbanEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
+import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleAddEvent;
+import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleRemoveEvent;
 import net.dv8tion.jda.api.events.interaction.command.UserContextInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import stone.rpbot.util.Helper;
@@ -36,40 +37,12 @@ import stone.rpbot.util.UnbanTask;
 public class KickedUserHelper extends ListenerAdapter {
 
 	private static Logger logger = LoggerFactory.getLogger("KickedUserRoles");
-	private static SortedSet<Long> kickedUsers;
 	private static Timer timer = new Timer();
 	private static File unBanFile = new File(SharedConstants.ROLES_FOLDER + "banDurations.txt");
 
 	public KickedUserHelper() {
-		kickedUsers = new TreeSet<Long>();
 		// jank
 		new File(SharedConstants.ROLES_FOLDER).mkdirs();
-		File file = new File(SharedConstants.ROLES_FOLDER + "jank.txt");
-		try (InputStream in = new FileInputStream(file); BufferedInputStream buffer = new BufferedInputStream(in))
-		{
-			byte[] kickedUserIdBytes = new byte[Long.BYTES];
-
-			while (buffer.read(kickedUserIdBytes) > 0)
-			{// stop searching if the end of file has been reached
-				kickedUsers.add(Helper.bytesToLong(kickedUserIdBytes));
-			}
-		} catch (IOException e)
-		{
-			logger.error("Failed to get list of kicked users");
-		}
-
-		try (InputStream in = new FileInputStream(unBanFile); BufferedInputStream buffer = new BufferedInputStream(in))
-		{
-			byte[] kickedUserIdBytes = new byte[Long.BYTES];
-
-			while (buffer.read(kickedUserIdBytes) > 0)
-			{// stop searching if the end of file has been reached
-				kickedUsers.add(Helper.bytesToLong(kickedUserIdBytes));
-			}
-		} catch (IOException e)
-		{
-			logger.error("Failed to get list of kicked users");
-		}
 	}
 
 	public static void banUser(Member member, String reason) {
@@ -122,13 +95,18 @@ public class KickedUserHelper extends ListenerAdapter {
 	@Override
 	public void onGuildMemberJoin(GuildMemberJoinEvent event) {
 		Member member = event.getMember();
-		if (!kickedUsers.contains(member.getIdLong()))
-			return;
-		logger.debug("Detected cached roles");
 		readRoles(member);
 		logger.info("Added roles back to " + member);
-		kickedUsers.remove(member.getIdLong());
-		writeLongs(kickedUsers);
+	}
+
+	@Override
+	public void onGuildMemberRoleAdd(GuildMemberRoleAddEvent event) {
+		saveUser(event.getMember());
+	}
+
+	@Override
+	public void onGuildMemberRoleRemove(GuildMemberRoleRemoveEvent event) {
+		saveUser(event.getMember());
 	}
 
 	@Override
@@ -154,8 +132,6 @@ public class KickedUserHelper extends ListenerAdapter {
 
 	private static void saveUser(Member member) {
 		List<Role> roles = member.getRoles();
-		kickedUsers.add(member.getIdLong());
-		writeLongs(kickedUsers);
 		File file = new File(SharedConstants.ROLES_FOLDER + member.getId() + ".roles");
 
 		try (FileOutputStream writer = new FileOutputStream(file);
@@ -173,7 +149,10 @@ public class KickedUserHelper extends ListenerAdapter {
 				buffer.write(nickBytes);
 			}
 			for (Role role : roles)
-			{ buffer.write(Helper.toBytes(role.getIdLong())); }
+			{
+				if (member.getGuild().getBotRole().canInteract(role))
+					buffer.write(Helper.toBytes(role.getIdLong()));
+			}
 
 		} catch (IOException e)
 		{
@@ -300,6 +279,15 @@ public class KickedUserHelper extends ListenerAdapter {
 		} catch (IOException e)
 		{
 			logger.warn(e.toString());
+		}
+	}
+
+	public static void saveAll(Guild guild) {
+		List<Member> members = guild.getMembers();
+		for (Member member : members)
+		{
+			saveUser(member);
+			logger.debug("Saved " + member.getEffectiveName());
 		}
 	}
 }
