@@ -255,9 +255,9 @@ public class KickedUserHelper extends ListenerAdapter {
 			BigInteger milliBan = banDuration.multiply(BigInteger.valueOf(60 * 1000))
 					.add(BigInteger.valueOf(System.currentTimeMillis())); // convert from minutes to milliseconds
 			PrivateChannel channel = member.getUser().openPrivateChannel().complete();
-			banUser(member, "nom");
 			channel.sendMessage("You have been banned for " + banDuration + " minutes\nhttps://discord.gg/rbeWFEsxhP")
 					.complete();
+			banUser(member, "nom");
 			if (milliBan.bitLength() < 64)
 			{// if larger then max long, just gonna forget about it instead of keeping
 				// track of it
