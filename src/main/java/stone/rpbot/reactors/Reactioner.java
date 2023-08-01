@@ -3,23 +3,24 @@ package stone.rpbot.reactors;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
-import net.dv8tion.jda.api.entities.Emote;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.emoji.CustomEmoji;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
+import net.dv8tion.jda.api.entities.emoji.EmojiUnion;
 
 public class Reactioner implements Consumer<Message> {
 
 	private Pattern pattern;
-	private String emoji;
-	private Emote emote;
+	private Emoji emoji;
 
-	public Reactioner(Pattern pattern, Emote emote) {
+	public Reactioner(Pattern pattern, CustomEmoji emote) {
 		this.pattern = pattern;
-		this.emote = emote;
+		this.emoji = emote;
 	}
 
 	public Reactioner(Pattern pattern, String emote) {
 		this.pattern = pattern;
-		this.emoji = emote;
+		this.emoji = Emoji.fromUnicode(emote);
 	}
 
 	@Override
@@ -27,11 +28,7 @@ public class Reactioner implements Consumer<Message> {
 
 		if (pattern.matcher(message.getContentRaw().toLowerCase()).find())
 		{
-			System.out.println("h");
-			if (emoji != null)
 				message.addReaction(emoji).queue();
-			else
-				message.addReaction(emote).queue();
 		}
 	}
 

@@ -12,7 +12,6 @@ import java.util.function.Consumer;
 import net.dv8tion.jda.api.entities.Message;
 import stone.rpbot.reactorRecorders.KarmaCounter;
 import stone.rpbot.reactorRecorders.ReactorRecord;
-import stone.rpbot.util.MutableInteger;
 import stone.rpbot.util.SharedConstants;
 
 public class MessageProcessers implements Consumer<Message> {
@@ -31,52 +30,66 @@ public class MessageProcessers implements Consumer<Message> {
 		reactorRecords = new TreeMap<>();
 	}
 
-	public void addCounter(String term, Recorder counter) { counters.put(term, counter); }
+	public void addCounter(String term, Recorder counter) {
+		counters.put(term, counter);
+	}
 
-	public void addReactor(Consumer<Message> reactor) { reactors.add(reactor); }
+	public void addReactor(Consumer<Message> reactor) {
+		reactors.add(reactor);
+	}
 
 	public void addReactorRecord(String identifier, ReactorRecord reactorRecord) {
 		reactorRecords.put(identifier, reactorRecord);
 	}
 
-	public void setKarmaCounter(KarmaCounter karmaCounter) { this.karmaCounter = karmaCounter; }
+	public void setKarmaCounter(KarmaCounter karmaCounter) {
+		this.karmaCounter = karmaCounter;
+	}
 
 	@Override
 	public void accept(Message message) {
 		String content = message.getContentRaw().toLowerCase();
-		Long id = message.getAuthor().getIdLong();
-		for (Consumer<Message> reactor : reactors)
-		{ reactor.accept(message); }
+		Long authorId = message.getAuthor().getIdLong();
 
-		for (Consumer<Message> reactorRecord : reactorRecords.values())
-		{ reactorRecord.accept(message); }
+		if (authorId == 456226577798135808l) // unifies someone's old account with their new one
+			authorId = 827724526313537536l;
+		else if (authorId == 371692613776179200l || authorId == 295943341143490563l) // no idea what this is
+			return;
+
+		for (Consumer<Message> reactor : reactors) {
+			reactor.accept(message);
+		}
+
+		for (Consumer<Message> reactorRecord : reactorRecords.values()) {
+			reactorRecord.accept(message);
+		}
 		if (karmaCounter != null)
 			karmaCounter.accept(message);
 		if (statCounter != null)
 			statCounter.accept(message);
-		for (BiPredicate<String, Long> counter : counters.values())
-		{ counter.test(content, id); }
+		for (BiPredicate<String, Long> counter : counters.values()) {
+			counter.test(content, authorId);
+		}
 	}
 
 	public void accept(String content, long id) {
-		for (BiPredicate<String, Long> counter : counters.values())
-		{ counter.test(content, id); }
-		for (ReactorRecord reactor : reactorRecords.values())
-		{ reactor.test(content, id); }
+		for (BiPredicate<String, Long> counter : counters.values()) {
+			counter.test(content, id);
+		}
+		for (ReactorRecord reactor : reactorRecords.values()) {
+			reactor.test(content, id);
+		}
 		if (karmaCounter != null)
 			karmaCounter.findKarma(content, id);
 	}
 
 	public int getCount(String str, long id) {
 		Recorder counter = counters.get(str);
-		if (counter != null)
-		{
+		if (counter != null) {
 			return counter.getCount(id);
-		} else
-		{
+		} else {
 			ReactorRecord reactorCounter = reactorRecords.get(str);
-			if (reactorCounter != null)
-			{
+			if (reactorCounter != null) {
 				return reactorCounter.getCount(id);
 			} else
 				return -2;
@@ -84,37 +97,43 @@ public class MessageProcessers implements Consumer<Message> {
 	}
 
 	public void saveAll() {
-		for (Recorder recorder : counters.values())
-		{ recorder.save(); }
+		for (Recorder recorder : counters.values()) {
+			recorder.save();
+		}
 
-		for (Recorder reactor : reactorRecords.values())
-		{ reactor.save(); }
+		for (Recorder reactor : reactorRecords.values()) {
+			reactor.save();
+		}
 		karmaCounter.save();
 	}
 
 	public void transferCounts(MessageProcessers processer) {
-		for (Entry<String, Recorder> counter : counters.entrySet())
-		{ counter.getValue().transfer(processer.getCounter(counter.getKey())); }
+		for (Entry<String, Recorder> counter : counters.entrySet()) {
+			counter.getValue().transfer(processer.getCounter(counter.getKey()));
+		}
 
-		for (Entry<String, ReactorRecord> recorder : reactorRecords.entrySet())
-		{ recorder.getValue().transfer(processer.getReactorRecord(recorder.getKey())); }
+		for (Entry<String, ReactorRecord> recorder : reactorRecords.entrySet()) {
+			recorder.getValue().transfer(processer.getReactorRecord(recorder.getKey()));
+		}
 		karmaCounter.transfer(processer.karmaCounter);
 	}
 
-	private Recorder getReactorRecord(String key) { return reactorRecords.get(key); }
+	private Recorder getReactorRecord(String key) {
+		return reactorRecords.get(key);
+	}
 
-	private Recorder getCounter(String key) { return counters.get(key); }
+	private Recorder getCounter(String key) {
+		return counters.get(key);
+	}
 
 	@Override
 	public String toString() {
 		String output = "";
-		for (Entry<String, Recorder> recorder : counters.entrySet())
-		{
+		for (Entry<String, Recorder> recorder : counters.entrySet()) {
 			output += recorder.getKey() + "\n";
 			output += recorder.getValue().toString() + "\n";
 		}
-		for (Entry<String, ReactorRecord> recorder : reactorRecords.entrySet())
-		{
+		for (Entry<String, ReactorRecord> recorder : reactorRecords.entrySet()) {
 			output += recorder.getKey() + "\n";
 			output += recorder.getValue().toString() + "\n";
 		}
@@ -124,10 +143,12 @@ public class MessageProcessers implements Consumer<Message> {
 
 	public MessageProcessers copyOf(boolean shouldResetCounts, boolean shouldAffect) {
 		MessageProcessers output = new MessageProcessers();
-		for (Entry<String, Recorder> recorder : counters.entrySet())
-		{ output.addCounter(recorder.getKey(), recorder.getValue().copyOf(shouldResetCounts, shouldAffect)); }
-		for (Entry<String, ReactorRecord> recorder : reactorRecords.entrySet())
-		{ output.addReactorRecord(recorder.getKey(), recorder.getValue().copyOf(shouldResetCounts, shouldAffect)); }
+		for (Entry<String, Recorder> recorder : counters.entrySet()) {
+			output.addCounter(recorder.getKey(), recorder.getValue().copyOf(shouldResetCounts, shouldAffect));
+		}
+		for (Entry<String, ReactorRecord> recorder : reactorRecords.entrySet()) {
+			output.addReactorRecord(recorder.getKey(), recorder.getValue().copyOf(shouldResetCounts, shouldAffect));
+		}
 		output.setKarmaCounter(karmaCounter.copyOf(shouldResetCounts, shouldAffect));
 		return output;
 	}

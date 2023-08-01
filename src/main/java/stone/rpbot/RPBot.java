@@ -1,7 +1,7 @@
 package stone.rpbot;
+
 import java.io.IOException;
 import java.sql.SQLException;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.TreeMap;
@@ -27,9 +27,9 @@ import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.channel.unions.MessageChannelUnion;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -38,11 +38,12 @@ import net.dv8tion.jda.api.interactions.commands.Command.Type;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
-import net.dv8tion.jda.api.interactions.components.Modal;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
+import net.dv8tion.jda.api.interactions.modals.Modal;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.requests.restaction.CommandListUpdateAction;
+import net.dv8tion.jda.api.utils.AttachedFile;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
 import stone.rpbot.reactorRecorders.KarmaCounter;
@@ -55,7 +56,6 @@ import stone.rpbot.record.LyricStore;
 import stone.rpbot.recorders.Counter;
 import stone.rpbot.recorders.MessageProcessers;
 import stone.rpbot.recorders.StatCounter;
-import stone.rpbot.scheduled.CringeDLB;
 import stone.rpbot.scheduled.DailyLyrics;
 import stone.rpbot.scheduled.RecurringMessage;
 import stone.rpbot.slash.PersistanceManager;
@@ -66,7 +66,7 @@ import stone.rpbot.util.SharedConstants;
 public class RPBot extends ListenerAdapter {
 
 	private MessageProcessers messageProcessers;
-	private Channels channels;
+	public static Channels channels;
 	private Logger logger;
 	private TreeMap<Long, List<Role>> kickedUserRoles;
 	private Scheduler scheduler;
@@ -88,7 +88,8 @@ public class RPBot extends ListenerAdapter {
 
 	public static void start(String[] args) throws SQLException, InterruptedException, NumberFormatException,
 			IOException, SchedulerException, LoginException {
-		JDABuilder builder = JDABuilder.createLight(args[0], GatewayIntent.GUILD_MESSAGES, GatewayIntent.GUILD_MEMBERS);
+		JDABuilder builder = JDABuilder.createLight(args[0], GatewayIntent.GUILD_MESSAGES, GatewayIntent.GUILD_MEMBERS,
+				GatewayIntent.MESSAGE_CONTENT);
 		// builder.addEventListeners(new Main());
 		builder.setMemberCachePolicy(MemberCachePolicy.ALL);
 		builder.enableCache(CacheFlag.ROLE_TAGS);
@@ -132,12 +133,6 @@ public class RPBot extends ListenerAdapter {
 				.inTimeZone(TimeZone.getTimeZone("CST"));
 		Trigger freefallTrigger = TriggerBuilder.newTrigger().withSchedule(schedule).build();
 
-		JobDetail DLBDetail = JobBuilder.newJob(CringeDLB.class)
-				.withIdentity("Making sure DLB works", "Conditional Messages").build();
-		CronScheduleBuilder DLBSchedule = CronScheduleBuilder.cronSchedule("0 30 15 * * ?")
-				.inTimeZone(TimeZone.getTimeZone(ZoneOffset.of("-4")));
-		Trigger DLBTrigger = TriggerBuilder.newTrigger().withSchedule(DLBSchedule).build();
-		
 		JobDetail DLDetail = JobBuilder.newJob(DailyLyrics.class).withIdentity("Daily Lyric", "Recurring Messages")
 				.usingJobData("guild", Long.valueOf(args[1])).usingJobData("channel", 485967269512478721l).build();
 		CronScheduleBuilder DLSchedule = CronScheduleBuilder.cronSchedule("0 0 15 * * ?")
@@ -154,6 +149,23 @@ public class RPBot extends ListenerAdapter {
 		CommandListUpdateAction commands = guild.updateCommands();
 		commands.addCommands(Commands.slash("count", "Gets the current count of the specified word and/or user")
 				.addOptions(new OptionData(OptionType.USER, "user", "The user you want to query").setRequired(true),
+						new OptionData(OptionType.STRING, "term", "The word you want to query about")
+								.setRequired(true)));
+		commands.addCommands(Commands
+				.slash("awhile", "Like count but takes a user id so users who aren't in the server can be searched")
+				.addOptions(new OptionData(OptionType.STRING, "user", "The user you want to query").setRequired(true), // this
+																														// needs
+																														// to
+																														// be
+																														// a
+																														// string
+																														// since
+																														// Discord
+																														// only
+																														// supported
+																														// numbers
+																														// up
+																														// 2^53
 						new OptionData(OptionType.STRING, "term", "The word you want to query about")
 								.setRequired(true)));
 		commands.addCommands(Commands.slash("rebuild", "Rebuilds stuff").addOption(OptionType.CHANNEL, "channel",
@@ -178,7 +190,7 @@ public class RPBot extends ListenerAdapter {
 
 	public RPBot(MessageProcessers processers, Channels channels, Logger logger, Scheduler scheduler) {
 		this.messageProcessers = processers;
-		this.channels = channels;
+		RPBot.channels = channels;
 		this.logger = logger;
 		this.scheduler = scheduler;
 		this.kickedUserRoles = new TreeMap<Long, List<Role>>();
@@ -198,42 +210,45 @@ public class RPBot extends ListenerAdapter {
 	@Override
 	public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
 		String name = event.getName();
-		switch (name)
-		{
+		Member user = null;
+		switch (name) {
 		case "count":
+
+			user = event.getGuild().getMember(event.getOption("user").getAsUser());
+		case "awhile":
 			event.deferReply().queue();
-			Member user = event.getGuild().getMember(event.getOption("user").getAsUser());
 			String term = event.getOption("term").getAsString();
-			int count = messageProcessers.getCount(term, user.getIdLong());
+			String userName;
+			long userId;
+			if (user == null) {
+				userId = Long.valueOf(event.getOption("user").getAsString());
+				userName = event.getOption("user").getAsString();
+			} else {
+				userId = user.getIdLong();
+				userName = user.getEffectiveName();
+			}
+			int count = messageProcessers.getCount(term, userId);
 
 			String output;
-			if (count > 0)
-			{
-				output = user.getEffectiveName() + " has said \"" + term + "\" " + count + " times.";
-			} else
-				if (count == -1)
-				{
-					output = user.getEffectiveName() + " has not said \"" + term + ".\"";
-				} else
-				{
+			if (count > 0) {
+				output = userName + " has said \"" + term + "\" " + count + " times.";
+			} else if (count == -1) {
+				output = userName + " has not said \"" + term + ".\"";
+			} else {
 
-					Counter tempCounter = new Counter(term, Pattern.compile(term), false);
-					MessageProcessers tempProcessers = new MessageProcessers();
-					tempProcessers.addCounter(term, tempCounter);
-					channels.searchChannels(tempProcessers);
-					count = tempProcessers.getCount(term, user.getIdLong());
-					if (count > 0)
-					{
-						output = user.getEffectiveName() + " has said \"" + term + "\" " + count + " times.";
-					} else
-						if (count == -1)
-						{
-							output = user.getEffectiveName() + " has not said \"" + term + ".\"";
-						} else
-						{
-							output = "\"" + term + "\" is currently not being tracked.";
-						}
+				Counter tempCounter = new Counter(term, Pattern.compile(term), false);
+				MessageProcessers tempProcessers = new MessageProcessers();
+				tempProcessers.addCounter(term, tempCounter);
+				channels.searchChannels(tempProcessers);
+				count = tempProcessers.getCount(term, userId);
+				if (count > 0) {
+					output = userName + " has said \"" + term + "\" " + count + " times.";
+				} else if (count == -1) {
+					output = userName + " has not said \"" + term + ".\"";
+				} else {
+					output = "\"" + term + "\" is currently not being tracked.";
 				}
+			}
 			event.getHook().editOriginal(output).queue();
 			break;
 		case "given":
@@ -249,31 +264,25 @@ public class RPBot extends ListenerAdapter {
 			event.reply(output).queue();
 			break;
 		case "recount":
-			if (event.getUser().getIdLong() == 275383746306244608l)
-			{
+			if (event.getUser().getIdLong() == 275383746306244608l) {
 				event.reply("alrighty then!").queue();
 				recount(event.getChannel());
-			} else
-			{
+			} else {
 				event.reply("heck no!").queue();
 			}
 			break;
 		case "rebuild":
-			if (event.getUser().getIdLong() == 275383746306244608l)
-			{
+			if (event.getUser().getIdLong() == 275383746306244608l) {
 				event.reply("alrighty then!").queue();
 				rebuild(event.getChannel());
-			} else
-			{
+			} else {
 				event.reply("heck no!").queue();
 			}
 			break;
 		case "admin":
-			if (event.getUser().getIdLong() == 275383746306244608l)
-			{
+			if (event.getUser().getIdLong() == 275383746306244608l) {
 				String command = event.getOption("command").getAsString();
-				switch (command)
-				{
+				switch (command) {
 				case "dumpCounts":
 					event.reply(messageProcessers.toString()).queue();
 					break;
@@ -287,13 +296,14 @@ public class RPBot extends ListenerAdapter {
 					MessageProcessers statTemp = new MessageProcessers();
 					StatCounter statCounter = new StatCounter(false, event.getGuild().getTimeCreated());
 					statTemp.statCounter = statCounter;
-					Thread thread = new Thread(() ->
-					{
+					Thread thread = new Thread(() -> {
 						long start = System.currentTimeMillis();
 						channels.searchChannels(statTemp);
 						long end = System.currentTimeMillis();
 						hook.editOriginal("Searched all channels in " + (end - start) + " ms").queue();
-						event.getChannel().sendFile(statTemp.statCounter.outputGraph(), "gramph.png").queue();
+						event.getChannel()
+								.sendFiles(AttachedFile.fromData(statTemp.statCounter.outputGraph(), "gramph.png"))
+								.queue();
 					});
 					thread.start();
 					break;
@@ -307,10 +317,8 @@ public class RPBot extends ListenerAdapter {
 					guild.kick(guild.getMember(event.getUser())).queue();
 					break;
 				case "tempBan":
-					KickedUserHelper.tempBan(
-							event.getMember(), "just didn't like them",
-							Long.valueOf(event.getOption("arguments").getAsString())
-					);
+					KickedUserHelper.tempBan(event.getMember(), "just didn't like them",
+							Long.valueOf(event.getOption("arguments").getAsString()));
 				case "giveRole":
 					Role role = event.getGuild().getRoleById(event.getOption("arguments").getAsString());
 					event.getGuild().addRoleToMember(event.getMember(), role).queue();
@@ -319,46 +327,40 @@ public class RPBot extends ListenerAdapter {
 				case "shutdown":
 					event.reply("ok").complete();
 					if (event.getUser().getIdLong() == 275383746306244608l)
-					System.exit(0);
+						System.exit(0);
 					break;
 				case "sendEmbed":
 					EmbedBuilder embedBuilder = new EmbedBuilder();
-					embedBuilder.setAuthor(event.getMember().getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl());
-					//embedBuilder.setTitle("<song name>");
+					embedBuilder.setAuthor(event.getMember().getEffectiveName(), null,
+							event.getMember().getEffectiveAvatarUrl());
+					// embedBuilder.setTitle("<song name>");
 					event.replyEmbeds(embedBuilder.build()).queue();
 					break;
-				case "sendModal" :
+				case "sendModal":
 					TextInput input = TextInput.create("Testing", "label", TextInputStyle.SHORT)
-										.setPlaceholder("placeholder")
-										.setValue("value")
-										.build();
+							.setPlaceholder("placeholder").setValue("value").build();
 					TextInput input2 = TextInput.create("Testing2", "label2", TextInputStyle.SHORT)
-							.setPlaceholder("placeholder")
-							.setValue("value")
-							.build();
-					Modal modal = Modal.create("TestingModal", "modalTitle")
-							.addActionRow(input)
-							.addActionRow(input2)
+							.setPlaceholder("placeholder").setValue("value").build();
+					Modal modal = Modal.create("TestingModal", "modalTitle").addActionRow(input).addActionRow(input2)
 							.build();
 					event.replyModal(modal).queue();
 					break;
-				case ".force" :
+				case ".force":
 					event.reply(".force").queue();
 					DailyLyrics tempLyrics = new DailyLyrics();
 					tempLyrics.setChannel(event.getChannel().getIdLong());
 					tempLyrics.setGuild(event.getGuild().getIdLong());
-					try
-					{
+					try {
 						tempLyrics.execute(null);
-					} catch (JobExecutionException e)
-					{
+					} catch (JobExecutionException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
 					break;
-				case "restoreRoles" :
+				case "restoreRoles":
 					event.reply("Alrighty then!").queue();
-					Member member = event.getGuild().retrieveMemberById(event.getOption("arguments").getAsString()).complete();
+					Member member = event.getGuild().retrieveMemberById(event.getOption("arguments").getAsString())
+							.complete();
 					KickedUserHelper.readRoles(member);
 					break;
 				case "saveRoles":
@@ -366,25 +368,24 @@ public class RPBot extends ListenerAdapter {
 					event.reply("Saved them all!").queue();
 					break;
 				}
-			} else
-			{
+			} else {
 				event.reply("uh no");
 			}
 		}
 	}
 
-	private void rebuild(MessageChannel channel) {
+	private void rebuild(MessageChannelUnion channel) {
 		logger.info("Rebuilding channels cache");
-		Thread thread = new Thread(() ->
-		{ channels.fetchAll(channel.getIdLong()); });
+		Thread thread = new Thread(() -> {
+			channels.fetchAll(channel.getIdLong());
+		});
 		thread.start();
 	}
 
-	private void recount(MessageChannel messageChannel) {
+	private void recount(MessageChannelUnion messageChannel) {
 		logger.info("Recounting entire count cache");
 		MessageProcessers processer = messageProcessers.copyOf(true, false);
-		Thread thread = new Thread(() ->
-		{
+		Thread thread = new Thread(() -> {
 			long start = System.currentTimeMillis();
 			channels.searchChannels(processer);
 			long end = System.currentTimeMillis();

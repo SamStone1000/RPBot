@@ -15,6 +15,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.Timer;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,8 +23,8 @@ import org.slf4j.LoggerFactory;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.PrivateChannel;
 import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.entities.channel.concrete.PrivateChannel;
 import net.dv8tion.jda.api.events.guild.GuildUnbanEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleAddEvent;
@@ -47,7 +48,7 @@ public class KickedUserHelper extends ListenerAdapter {
 
 	public static void banUser(Member member, String reason) {
 		saveUser(member);
-		member.ban(0, reason).queue();
+		member.ban(0, TimeUnit.SECONDS).reason(reason).queue();
 	}
 
 	public static void tempBan(Member member, String reason, long millis) {
@@ -63,11 +64,9 @@ public class KickedUserHelper extends ListenerAdapter {
 		Guild guild = member.getGuild();
 		File file = new File(SharedConstants.ROLES_FOLDER + id + ".roles");
 		List<Role> roles = new ArrayList<Role>();
-		try (InputStream in = new FileInputStream(file); BufferedInputStream buffer = new BufferedInputStream(in))
-		{
+		try (InputStream in = new FileInputStream(file); BufferedInputStream buffer = new BufferedInputStream(in)) {
 			int nickLength = buffer.read();
-			if (nickLength != 0)
-			{
+			if (nickLength != 0) {
 				byte[] nickBytes = new byte[nickLength];
 				buffer.read(nickBytes);
 				String nick = new String(nickBytes, StandardCharsets.UTF_16BE);
@@ -76,8 +75,7 @@ public class KickedUserHelper extends ListenerAdapter {
 
 			byte[] roleBytes = new byte[Long.BYTES];
 
-			while (buffer.read(roleBytes) > 0)
-			{// stop searching if the end of file has been reached
+			while (buffer.read(roleBytes) > 0) {// stop searching if the end of file has been reached
 				Role role = guild.getRoleById(Helper.bytesToLong(roleBytes));
 				if (role != null)
 					roles.add(role);
@@ -86,8 +84,7 @@ public class KickedUserHelper extends ListenerAdapter {
 
 			}
 			guild.modifyMemberRoles(member, roles).queue();
-		} catch (IOException e)
-		{
+		} catch (IOException e) {
 			logger.warn("Caught exception while reading roles");
 		}
 	}
@@ -111,10 +108,8 @@ public class KickedUserHelper extends ListenerAdapter {
 
 	@Override
 	public void onUserContextInteraction(UserContextInteractionEvent event) {
-		if (event.getName().equals("kick"))
-		{
-			if (event.getMember().getPermissions().contains(Permission.KICK_MEMBERS))
-			{
+		if (event.getName().equals("kick")) {
+			if (event.getMember().getPermissions().contains(Permission.KICK_MEMBERS)) {
 				logger.debug("Kicking " + event.getTargetMember());
 				kickUser(event.getTargetMember());
 				// kickedUsers.add(event.getTargetMember().getIdLong());
@@ -135,27 +130,22 @@ public class KickedUserHelper extends ListenerAdapter {
 		File file = new File(SharedConstants.ROLES_FOLDER + member.getId() + ".roles");
 
 		try (FileOutputStream writer = new FileOutputStream(file);
-				BufferedOutputStream buffer = new BufferedOutputStream(writer))
-		{
+				BufferedOutputStream buffer = new BufferedOutputStream(writer)) {
 			file.createNewFile();
 			String nick = member.getNickname();
-			if (nick == null)
-			{
+			if (nick == null) {
 				buffer.write(0);
-			} else
-			{
+			} else {
 				byte[] nickBytes = nick.getBytes(StandardCharsets.UTF_16BE);
 				buffer.write(nickBytes.length);
 				buffer.write(nickBytes);
 			}
-			for (Role role : roles)
-			{
+			for (Role role : roles) {
 				if (member.getGuild().getBotRole().canInteract(role))
 					buffer.write(Helper.toBytes(role.getIdLong()));
 			}
 
-		} catch (IOException e)
-		{
+		} catch (IOException e) {
 			logger.warn("Caught exception while writing roles");
 		}
 	}
@@ -167,30 +157,24 @@ public class KickedUserHelper extends ListenerAdapter {
 	}
 
 	private void removeUnBan(long id) {
-		if (unBanFile.exists())
-		{
+		if (unBanFile.exists()) {
 			byte[] entireFile = new byte[(int) unBanFile.length()];
 			try (InputStream in = new FileInputStream(unBanFile);
-					BufferedInputStream buffer = new BufferedInputStream(in))
-			{
+					BufferedInputStream buffer = new BufferedInputStream(in)) {
 				buffer.read(entireFile);
-			} catch (IOException e)
-			{
+			} catch (IOException e) {
 				logger.warn(e.toString());
 			}
 
 			try (OutputStream out = new FileOutputStream(unBanFile);
-					BufferedOutputStream buffer = new BufferedOutputStream(out))
-			{
+					BufferedOutputStream buffer = new BufferedOutputStream(out)) {
 				byte[] userIdBytes = new byte[Long.BYTES];
 				byte[] dateBytes = new byte[Long.BYTES];
 				byte[] guildBytes = new byte[Long.BYTES];
-				for (int offset = 0; offset < entireFile.length;)
-				{
+				for (int offset = 0; offset < entireFile.length;) {
 					System.arraycopy(entireFile, offset, userIdBytes, 0, userIdBytes.length);
 					offset += userIdBytes.length; // continue past the user id
-					if (Helper.bytesToLong(userIdBytes) != id)
-					{
+					if (Helper.bytesToLong(userIdBytes) != id) {
 						System.arraycopy(entireFile, offset, guildBytes, 0, guildBytes.length);
 						offset += guildBytes.length; // continue past the guild id
 						System.arraycopy(entireFile, offset, dateBytes, 0, dateBytes.length);
@@ -200,8 +184,7 @@ public class KickedUserHelper extends ListenerAdapter {
 					}
 					offset += dateBytes.length; // continue past the date
 				}
-			} catch (IOException e)
-			{
+			} catch (IOException e) {
 				logger.warn(e.toString());
 			}
 		}
@@ -210,14 +193,13 @@ public class KickedUserHelper extends ListenerAdapter {
 	private static void writeLongs(SortedSet<Long> kickedUsers2) {
 		File file = new File(SharedConstants.ROLES_FOLDER + "jank.txt");
 		try (FileOutputStream writer = new FileOutputStream(file);
-				BufferedOutputStream buffer = new BufferedOutputStream(writer))
-		{
+				BufferedOutputStream buffer = new BufferedOutputStream(writer)) {
 			file.createNewFile();
-			for (long role : kickedUsers2)
-			{ buffer.write(Helper.toBytes(role)); }
+			for (long role : kickedUsers2) {
+				buffer.write(Helper.toBytes(role));
+			}
 
-		} catch (IOException e)
-		{
+		} catch (IOException e) {
 			logger.warn("Caught exception while writing longs");
 			logger.warn(e.toString());
 		}
@@ -234,8 +216,7 @@ public class KickedUserHelper extends ListenerAdapter {
 		if (id == 282722155085692929l) // for an endosomatophillia enjoyer
 			consequenceMeter = -1;
 		final BigInteger banDuration;
-		switch (consequenceMeter)
-		{
+		switch (consequenceMeter) {
 		case 0:
 			banDuration = BigInteger.valueOf(voreCount);
 			break;
@@ -250,17 +231,15 @@ public class KickedUserHelper extends ListenerAdapter {
 			break;
 		}
 
-		if (!banDuration.equals(BigInteger.ZERO))
-		{
+		if (!banDuration.equals(BigInteger.ZERO)) {
 			BigInteger milliBan = banDuration.multiply(BigInteger.valueOf(60 * 1000))
 					.add(BigInteger.valueOf(System.currentTimeMillis())); // convert from minutes to milliseconds
 			PrivateChannel channel = member.getUser().openPrivateChannel().complete();
 			channel.sendMessage("You have been banned for " + banDuration + " minutes\nhttps://discord.gg/rbeWFEsxhP")
 					.complete();
 			banUser(member, "nom");
-			if (milliBan.bitLength() < 64)
-			{// if larger then max long, just gonna forget about it instead of keeping
-				// track of it
+			if (milliBan.bitLength() < 64) {// if larger then max long, just gonna forget about it instead of keeping
+											// track of it
 				Date date = new Date(milliBan.longValue());
 				timer.schedule(new UnbanTask(member), date);
 				writeUnBan(member, date);
@@ -271,21 +250,18 @@ public class KickedUserHelper extends ListenerAdapter {
 
 	private static void writeUnBan(Member member, Date date) {
 		try (FileOutputStream fos = new FileOutputStream(unBanFile, true);
-				BufferedOutputStream buffer = new BufferedOutputStream(fos))
-		{
+				BufferedOutputStream buffer = new BufferedOutputStream(fos)) {
 			buffer.write(Helper.toBytes(member.getIdLong()));
 			buffer.write(Helper.toBytes(member.getGuild().getIdLong()));
 			buffer.write(Helper.toBytes(date.getTime()));
-		} catch (IOException e)
-		{
+		} catch (IOException e) {
 			logger.warn(e.toString());
 		}
 	}
 
 	public static void saveAll(Guild guild) {
 		List<Member> members = guild.getMembers();
-		for (Member member : members)
-		{
+		for (Member member : members) {
 			saveUser(member);
 			logger.debug("Saved " + member.getEffectiveName());
 		}

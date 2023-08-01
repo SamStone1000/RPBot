@@ -20,9 +20,8 @@ package stone.rpbot.slash.conway;
 import java.nio.CharBuffer;
 import java.util.Scanner;
 
-import net.dv8tion.jda.api.MessageBuilder;
-import net.dv8tion.jda.api.entities.Emoji;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
@@ -30,6 +29,8 @@ import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle;
 import net.dv8tion.jda.api.requests.restaction.CommandListUpdateAction;
+import net.dv8tion.jda.api.utils.messages.AbstractMessageBuilder;
+import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 import stone.rpbot.slash.PersistanceManager.State;
 import stone.rpbot.slash.PersistantCommand;
 import stone.rpbot.slash.conway.GameOfLife.Coordinate;
@@ -80,7 +81,7 @@ public class ConwayManager implements PersistantCommand {
 	public ConwayManager(SlashCommandInteractionEvent event) {
 		int size = event.getOption(SIZE_OPTION).getAsInt();
 		this.game = new SimpleGameOfLife(size);
-		MessageBuilder initialMessage = new MessageBuilder();
+		MessageCreateBuilder initialMessage = new MessageCreateBuilder();
 		initialMessage.setContent(new String(game.draw()));
 		ActionRow row = ActionRow.of(// IMPROVE THIS
 				Button.of(ButtonStyle.SECONDARY, START, "Start"),
@@ -91,7 +92,7 @@ public class ConwayManager implements PersistantCommand {
 				Button.of(ButtonStyle.PRIMARY, DOWN, Emoji.fromUnicode("⬇️")),
 				Button.of(ButtonStyle.PRIMARY, RIGHT, Emoji.fromUnicode("➡️")),
 				Button.of(ButtonStyle.DANGER, STOP, "Stop Game"));
-		initialMessage.setActionRows(row, row2);
+		initialMessage.setComponents(row, row2);
 		this.message = event.getChannel().sendMessage(initialMessage.build()).complete();
 		drawWithCursor();
 	}
@@ -206,7 +207,7 @@ public class ConwayManager implements PersistantCommand {
 	@Override
 	public void run() {
 		start();
-		message.editMessage(new MessageBuilder().append("Message is dead. Rice soup is not big.").build()).queue();
+		message.editMessage("Message is dead. Rice soup is not big.").queue();
 	}
 
 	@Override
@@ -232,7 +233,7 @@ public class ConwayManager implements PersistantCommand {
 			case START:
 				return State.RUNNING;
 			case STOP:
-				message.editMessage(new MessageBuilder().append("Message is dead. Rice soup is not big.").build())
+				message.editMessage("Message is dead. Rice soup is not big.")
 						.queue();
 				running = false;
 				return State.DEAD;

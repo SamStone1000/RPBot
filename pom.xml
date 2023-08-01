@@ -28,7 +28,14 @@
 					</archive>
 				</configuration>
 			</plugin>
-
+			<plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>1.2.1</version>
+                <configuration>
+                    <mainClass>${project.groupId}.${project.artifactId}.${project.name}</mainClass>
+                </configuration>
+            </plugin>
 		</plugins>
 	</build>
 	<repositories>
@@ -44,9 +51,9 @@
 			<version>1.2.8</version>
 		</dependency>
 		<dependency>
-			<groupId>com.github.DV8FromTheWorld</groupId>
+			<groupId>net.dv8tion</groupId>
 			<artifactId>JDA</artifactId>
-			<version>5492a76bce</version>
+			<version>5.0.0-beta.12</version>
 		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>

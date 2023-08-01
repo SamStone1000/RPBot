@@ -15,7 +15,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.utils.FileUpload;
 import stone.rpbot.recorders.Counter;
 import stone.rpbot.util.MutableInteger;
 
@@ -26,10 +27,8 @@ public class E621Counter extends Counter implements ReactorRecord {
 	private JDA jda;
 	protected Pattern triggerTerm;
 
-	public E621Counter(
-			String term, Pattern pattern, boolean shouldEffect, long channelId, String searchTerms, JDA jda,
-			Pattern triggerTerm
-	) {
+	public E621Counter(String term, Pattern pattern, boolean shouldEffect, long channelId, String searchTerms, JDA jda,
+			Pattern triggerTerm) {
 		super(term, pattern, shouldEffect);
 		this.channelId = channelId;
 		this.searchTerms = searchTerms;
@@ -37,10 +36,8 @@ public class E621Counter extends Counter implements ReactorRecord {
 		this.triggerTerm = triggerTerm;
 	}
 
-	public E621Counter(
-			Pattern pattern, Map<Long, MutableInteger> counts, File file, boolean shouldAffect, long channelId,
-			String searchTerms, JDA jda, boolean shouldResetCounts
-	) {
+	public E621Counter(Pattern pattern, Map<Long, MutableInteger> counts, File file, boolean shouldAffect,
+			long channelId, String searchTerms, JDA jda, boolean shouldResetCounts) {
 		super(pattern, counts, file, shouldAffect, shouldResetCounts);
 		this.channelId = channelId;
 		this.searchTerms = searchTerms;
@@ -55,17 +52,16 @@ public class E621Counter extends Counter implements ReactorRecord {
 				sendImage();
 	}
 
+	@Override
 	public ReactorRecord copyOf(boolean shouldResetCounts, boolean shouldAffect) {
 		return new E621Counter(pattern, counts, file, shouldAffect, channelId, searchTerms, jda, shouldResetCounts);
 	}
 
 	protected void sendImage() {
-		try
-		{
+		try {
 			LoggerFactory.getLogger("E621").debug("Sending Image");
 			HttpURLConnection connection = (HttpURLConnection) new URL(
-					"https://e621.net/posts.json?tags=" + searchTerms + "+order:random+limit:1"
-			).openConnection();
+					"https://e621.net/posts.json?tags=" + searchTerms + "+order:random+limit:1").openConnection();
 			connection.setRequestMethod("GET");
 			connection.setRequestProperty("User-Agent", "RPBot/2.0 by SamStone");
 			connection.connect();
@@ -82,10 +78,9 @@ public class E621Counter extends Counter implements ReactorRecord {
 			connection2.setRequestProperty("User-Agent", "RPBot/2.0 by SamStone");
 			connection2.connect();
 			TextChannel channel = jda.getTextChannelById(channelId);
-			channel.sendFile(connection2.getInputStream(), "SPOILER_" + url.substring(url.length() - md5.length() - 3))
-					.queue();
-		} catch (Exception e)
-		{
+			channel.sendFiles(FileUpload.fromData(connection2.getInputStream(),
+					"SPOILER_" + url.substring(url.length() - md5.length() - 3))).queue();
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}

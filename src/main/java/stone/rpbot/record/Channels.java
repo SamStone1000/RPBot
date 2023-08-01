@@ -3,7 +3,6 @@ package stone.rpbot.record;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.NavigableMap;
 import java.util.TreeMap;
@@ -14,7 +13,7 @@ import org.slf4j.LoggerFactory;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import stone.rpbot.recorders.MessageProcessers;
 import stone.rpbot.util.MutableInteger;
 import stone.rpbot.util.SharedConstants;
@@ -38,8 +37,7 @@ public class Channels {
 		Guild guild = jda.getGuildById(guildId);
 		List<TextChannel> tempChannels = guild.getTextChannels();
 		new File(SharedConstants.MESSAGES_FOLDER).mkdirs();
-		for (TextChannel channel : tempChannels)
-		{
+		for (TextChannel channel : tempChannels) {
 			long id = channel.getIdLong();
 			messageCounter.put(id, new MutableInteger(0));
 			channels.put(id, new Messages(id, jda));
@@ -47,16 +45,16 @@ public class Channels {
 	}
 
 	public void searchChannels(MessageProcessers processers) {
-		for (Messages messages : channels.values())
-		{ messages.searchMessages(processers, guildId); }
+		for (Messages messages : channels.values()) {
+			messages.searchMessages(processers, guildId);
+		}
 	}
 
 	public void syncChannel(Message message) {
 		long channelId = message.getChannel().getIdLong();
 		MutableInteger mutableInteger = messageCounter.get(channelId);
 		mutableInteger.increment();
-		if (mutableInteger.intValue() > 100)
-		{
+		if (mutableInteger.intValue() > 100) {
 			mutableInteger.add(-100);
 			LoggerFactory.getLogger("sync").debug("Syncing " + channelId);
 			channels.get(channelId).fetchMessages(message.getIdLong());
@@ -65,15 +63,13 @@ public class Channels {
 
 	public void fetchAll(long channel) {
 		Logger logger = LoggerFactory.getLogger("Fetch");
-		for (Messages messages : channels.values())
-		{
+		for (Messages messages : channels.values()) {
 			long start = System.currentTimeMillis();
-			try
-			{
+			try {
 				messages.fetchMessages();
-			} catch (SQLException e)
-			{
-				jda.getTextChannelById(channel).sendMessage("Failed to drop table of channel <#"+messages.getId()+">");
+			} catch (SQLException e) {
+				jda.getTextChannelById(channel)
+						.sendMessage("Failed to drop table of channel <#" + messages.getId() + ">");
 			}
 			long end = System.currentTimeMillis();
 			String debug = "Fetched <#" + messages.getId() + "> in " + (end - start) + " ms";

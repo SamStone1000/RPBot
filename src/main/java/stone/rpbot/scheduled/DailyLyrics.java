@@ -23,14 +23,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
+import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import stone.rpbot.record.LyricStore;
 import stone.rpbot.util.SharedConstants;
 
@@ -68,7 +69,7 @@ public class DailyLyrics extends ListenerAdapter implements Job {
 			
 			if (ids.isEmpty())
 			{// no lyrics found, send APDO and cancel rest of execution
-				Message msg = new MessageBuilder()
+				MessageCreateData msg = new MessageCreateBuilder()
 						.setContent("No lyrics in queue, have the Astronomy Picture of the Day instead")
 						.setEmbeds(getAstronomyEmbed()).build();
 				channel.sendMessage(msg).queue();
