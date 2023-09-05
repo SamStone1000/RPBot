@@ -22,17 +22,20 @@ import java.util.Map;
 
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.requests.restaction.CommandListUpdateAction;
 
 /**
  * 
  */
 public class SlashManager extends ListenerAdapter {
-	
-	private Map<String, SlashCommand> commands = new HashMap<>();
-	
-	public void init(CommandListUpdateAction commands) {
 
+	private Map<String, SlashCommand> commands = new HashMap<>();
+
+	public void init(CommandListUpdateAction commands) {
+		commands.addCommands(Commands.slash("time", "Produces a Discord timestamp from input").addOption(
+				OptionType.STRING, "input", "Input can take the form of relative inputs prefixed with a +/-", true));
 	}
 
 	@Override
