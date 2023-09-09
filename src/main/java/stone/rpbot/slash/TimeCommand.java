@@ -36,7 +36,7 @@ public class TimeCommand implements SlashCommand {
 		dateTime = handleSimpleUnit(dateTime, token);
 	    }
 	}
-	event.reply(TimeFormat.DEFAULT.format(dateTime) + " " + dateTime).setEphemeral(true).queue();
+	event.reply(String.format("`%s`", TimeFormat.RELATIVE.format(dateTime))).setEphemeral(true).queue();
     }
 
     public OffsetDateTime handleSimpleUnit(OffsetDateTime dateTime, String token) {
