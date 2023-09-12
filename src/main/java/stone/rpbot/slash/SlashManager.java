@@ -34,8 +34,9 @@ public class SlashManager extends ListenerAdapter {
 	private Map<String, SlashCommand> commands = new HashMap<>();
 
 	public void init(CommandListUpdateAction commands) {
-		commands.addCommands(Commands.slash("time", "Produces a Discord timestamp from input").addOption(
-				OptionType.STRING, "input", "Input can take the form of relative inputs prefixed with a +/-", true));
+		commands.addCommands(
+				Commands.slash("time", "Produces a Discord timestamp from input").addOption(OptionType.STRING, "input",
+						"Input can take the form of absolute inputs or relative inputs prefixed with a +/-", true));
 	}
 
 	@Override
