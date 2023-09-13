@@ -34,9 +34,12 @@ public class SlashManager extends ListenerAdapter {
 	private Map<String, SlashCommand> commands = new HashMap<>();
 
 	public void init(CommandListUpdateAction commands) {
+		registerSlashCommand("man", new ManCommand(this));
 		commands.addCommands(
 				Commands.slash("time", "Produces a Discord timestamp from input").addOption(OptionType.STRING, "input",
 						"Input can take the form of absolute inputs or relative inputs prefixed with a +/-", true));
+		commands.addCommands(Commands.slash("man", "Gets manual for specified command").addOption(OptionType.STRING,
+				ManCommand.OPTION_COMMAND, "The command to get the manual for", true));
 	}
 
 	@Override
@@ -46,5 +49,9 @@ public class SlashManager extends ListenerAdapter {
 
 	public void registerSlashCommand(String key, SlashCommand value) {
 		commands.put(key, value);
+	}
+
+	public SlashCommand getSlashCommand(String key) {
+		return commands.get(key);
 	}
 }
