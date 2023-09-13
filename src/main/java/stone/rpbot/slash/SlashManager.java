@@ -39,7 +39,7 @@ public class SlashManager extends ListenerAdapter {
 				Commands.slash("time", "Produces a Discord timestamp from input").addOption(OptionType.STRING, "input",
 						"Input can take the form of absolute inputs or relative inputs prefixed with a +/-", true));
 		commands.addCommands(Commands.slash("man", "Gets manual for specified command").addOption(OptionType.STRING,
-				ManCommand.OPTION_COMMAND, "The command to get the manual for", true));
+				ManCommand.OPTION_COMMAND, "The name of the command to get the manual for", true));
 	}
 
 	@Override
