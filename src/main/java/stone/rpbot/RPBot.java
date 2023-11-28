@@ -131,8 +131,8 @@ public class RPBot extends ListenerAdapter {
 				.withIdentity("FreeFall Reminder", "Recurring Messages")
 				.usingJobData("message", "Another 3 panels of Freefall have been added.")
 				.usingJobData("channel", Long.valueOf(args[3])).build();
-		CronScheduleBuilder schedule = CronScheduleBuilder.cronSchedule("0 0 0 ? * MON,WED,FRI")
-				.inTimeZone(TimeZone.getTimeZone("CST"));
+		CronScheduleBuilder schedule = CronScheduleBuilder.cronSchedule("0 0 20 ? * TUE,THU,SAT")
+				.inTimeZone(TimeZone.getTimeZone("America/Louisville"));
 		Trigger freefallTrigger = TriggerBuilder.newTrigger().withSchedule(schedule).build();
 
 		JobDetail DLDetail = JobBuilder.newJob(DailyLyrics.class).withIdentity("Daily Lyric", "Recurring Messages")
