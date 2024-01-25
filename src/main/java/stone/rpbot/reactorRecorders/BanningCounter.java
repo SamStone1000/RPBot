@@ -12,9 +12,9 @@ import net.dv8tion.jda.api.entities.Message;
 import stone.rpbot.record.KickedUserHelper;
 import stone.rpbot.util.MutableInteger;
 
-public class VoreCounter extends E621Counter {
+public class BanningCounter extends ImageCounter {
 
-	public VoreCounter(
+	public BanningCounter(
 			String term, Pattern pattern, boolean shouldEffect, long channelId, String searchTerms, JDA jda,
 			Pattern triggerTerm
 	) {
@@ -22,7 +22,7 @@ public class VoreCounter extends E621Counter {
 		// TODO Auto-generated constructor stub
 	}
 
-	public VoreCounter(
+	public BanningCounter(
 			Pattern pattern, Map<Long, MutableInteger> counts, File file, boolean shouldAffect, long channelId,
 			String searchTerms, JDA jda, boolean shouldResetCounts
 	) {
@@ -37,7 +37,7 @@ public class VoreCounter extends E621Counter {
 			if (shouldAffect)
 			{
 				Member author = message.getMember();
-				BigInteger duration = KickedUserHelper.kickForVore(author, super.getCount(author.getIdLong()));
+				BigInteger duration = KickedUserHelper.kickForSayingIt(author, super.getCount(author.getIdLong()));
 				if (duration.compareTo(BigInteger.ZERO) != 0)
 				{
 					String output = author.getEffectiveName() + " has been banned for ";

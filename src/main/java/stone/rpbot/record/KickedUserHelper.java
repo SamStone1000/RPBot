@@ -205,26 +205,26 @@ public class KickedUserHelper extends ListenerAdapter {
 		}
 	}
 
-	public static BigInteger kickForVore(Member member, int voreCount) {
+	public static BigInteger kickForSayingIt(Member member, int count) {
 		int consequenceMeter = 0;
 		Guild guild = member.getGuild();
 		long id = member.getIdLong();
 		if (!member.getRoles().contains(guild.getRoleById(949142927567908886l)))
 			consequenceMeter++;
-		if (id == 248241320441806851l)
+		if (id == 248241320441806851l) // just hate him in particular
 			consequenceMeter++;
 		if (id == 282722155085692929l) // for an endosomatophillia enjoyer
 			consequenceMeter = -1;
 		final BigInteger banDuration;
 		switch (consequenceMeter) {
 		case 0:
-			banDuration = BigInteger.valueOf(voreCount);
+			banDuration = BigInteger.valueOf(count);
 			break;
 		case 1:
-			banDuration = BigInteger.valueOf(voreCount).pow(2);
+			banDuration = BigInteger.valueOf(count).pow(2);
 			break;
 		case 2:
-			banDuration = BigInteger.TWO.pow(voreCount);
+			banDuration = BigInteger.TWO.pow(count);
 			break;
 		default:
 			banDuration = BigInteger.ZERO;

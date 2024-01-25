@@ -47,7 +47,7 @@ import net.dv8tion.jda.api.utils.AttachedFile;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
 import stone.rpbot.reactorRecorders.KarmaCounter;
-import stone.rpbot.reactorRecorders.VoreCounter;
+import stone.rpbot.reactorRecorders.BanningCounter;
 import stone.rpbot.reactors.RandomCodeExecutor;
 import stone.rpbot.reactors.Reactioner;
 import stone.rpbot.record.Channels;
@@ -103,7 +103,7 @@ public class RPBot extends ListenerAdapter {
 		Reactioner mogusReactor = new Reactioner(Pattern.compile("(?:^|\\W)mogus(?:$|\\W)"), "👍");
 		KarmaCounter karmaCounter = new KarmaCounter();
 		RandomCodeExecutor randomCodeExecutor = new RandomCodeExecutor(karmaCounter);
-		VoreCounter voreCounter = new VoreCounter("vore",
+		BanningCounter voreCounter = new BanningCounter("vore",
 				Pattern.compile("\\b(vor(?:e[sd]?|ing))\\b", Pattern.CASE_INSENSITIVE), true, Long.valueOf(args[2]),
 				"vore", jda, Pattern.compile("(vor(?:e[sd]?|ing))", Pattern.CASE_INSENSITIVE));
 
@@ -131,7 +131,7 @@ public class RPBot extends ListenerAdapter {
 				.withIdentity("FreeFall Reminder", "Recurring Messages")
 				.usingJobData("message", "Another 3 panels of Freefall have been added.")
 				.usingJobData("channel", Long.valueOf(args[3])).build();
-		CronScheduleBuilder schedule = CronScheduleBuilder.cronSchedule("0 0 20 ? * TUE,THU,SAT")
+		CronScheduleBuilder schedule = CronScheduleBuilder.cronSchedule("0 0 20 ? * TUE,THU,SUN")
 				.inTimeZone(TimeZone.getTimeZone("America/Louisville"));
 		Trigger freefallTrigger = TriggerBuilder.newTrigger().withSchedule(schedule).build();
 
@@ -155,19 +155,8 @@ public class RPBot extends ListenerAdapter {
 								.setRequired(true)));
 		commands.addCommands(Commands
 				.slash("awhile", "Like count but takes a user id so users who aren't in the server can be searched")
-				.addOptions(new OptionData(OptionType.STRING, "user", "The user you want to query").setRequired(true), // this
-																														// needs
-																														// to
-																														// be
-																														// a
-																														// string
-																														// since
-																														// Discord
-																														// only
-																														// supported
-																														// numbers
-																														// up
-																														// 2^53
+				.addOptions(new OptionData(OptionType.STRING, "user", "The user you want to query").setRequired(true),
+					    // this needs to be astringsince Discord only supported numbers up 2^53
 						new OptionData(OptionType.STRING, "term", "The word you want to query about")
 								.setRequired(true)));
 		commands.addCommands(Commands.slash("rebuild", "Rebuilds stuff").addOption(OptionType.CHANNEL, "channel",
