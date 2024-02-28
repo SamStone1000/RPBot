@@ -60,7 +60,7 @@ import stone.rpbot.scheduled.DailyLyrics;
 import stone.rpbot.scheduled.RecurringMessage;
 import stone.rpbot.slash.PersistanceManager;
 import stone.rpbot.slash.SlashManager;
-import stone.rpbot.slash.TimeCommand;
+import stone.rpbot.slash.commands.CommandTime;
 import stone.rpbot.slash.conway.ConwayManager;
 import stone.rpbot.util.SharedConstants;
 
@@ -173,7 +173,6 @@ public class RPBot extends ListenerAdapter {
 		commands.addCommands(Commands.context(Type.USER, "kick"));
 		commands.addCommands(Commands.slash(LyricStore.COMMAND_NAME, "Allows you to add a lyric to be sent later"));
 		// commands.addCommands(Commands.message("Give"));
-		slashes.registerSlashCommand("time", new TimeCommand());
 		slashes.init(commands);
 
 		persistants.init();

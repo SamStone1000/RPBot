@@ -25,33 +25,32 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.requests.restaction.CommandListUpdateAction;
+import stone.rpbot.slash.commands.CommandMan;
+import stone.rpbot.slash.commands.CommandTime;
 
 /**
  * 
  */
 public class SlashManager extends ListenerAdapter {
 
-	private Map<String, SlashCommand> commands = new HashMap<>();
+    private Map<String, SlashCommand> commands = new HashMap<>();
 
-	public void init(CommandListUpdateAction commands) {
-		registerSlashCommand("man", new ManCommand(this));
-		commands.addCommands(
-				Commands.slash("time", "Produces a Discord timestamp from input").addOption(OptionType.STRING, "input",
-						"Input can take the form of absolute inputs or relative inputs prefixed with a +/-", true));
-		commands.addCommands(Commands.slash("man", "Gets manual for specified command").addOption(OptionType.STRING,
-				ManCommand.OPTION_COMMAND, "The name of the command to get the manual for", true));
-	}
+    public void init(CommandListUpdateAction commands) {
+        registerSlashCommand(commands, new CommandMan(this));
+        registerSlashCommand(commands, new CommandTime());
+    }
 
-	@Override
-	public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
-		commands.get(event.getName()).onSlashCommand(event);
-	}
+    @Override
+    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+        commands.get(event.getName()).onSlashCommand(event);
+    }
 
-	public void registerSlashCommand(String key, SlashCommand value) {
-		commands.put(key, value);
-	}
+    public void registerSlashCommand(CommandListUpdateAction action, SlashCommand command) {
+        this.commands.put(command.getName(), command);
+        action.addCommands(command.getCommandData());
+    }
 
-	public SlashCommand getSlashCommand(String key) {
-		return commands.get(key);
-	}
+    public SlashCommand getSlashCommand(String key) {
+        return commands.get(key);
+    }
 }
