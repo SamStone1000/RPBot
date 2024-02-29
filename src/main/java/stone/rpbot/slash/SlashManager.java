@@ -27,6 +27,7 @@ import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.requests.restaction.CommandListUpdateAction;
 import stone.rpbot.slash.commands.CommandMan;
 import stone.rpbot.slash.commands.CommandTime;
+import stone.rpbot.slash.commands.tag.CommandTag;
 
 /**
  * 
@@ -38,6 +39,7 @@ public class SlashManager extends ListenerAdapter {
     public void init(CommandListUpdateAction commands) {
         registerSlashCommand(commands, new CommandMan(this));
         registerSlashCommand(commands, new CommandTime());
+        registerSlashCommand(commands, new CommandTag());
     }
 
     @Override

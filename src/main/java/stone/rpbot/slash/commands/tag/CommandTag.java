@@ -1,4 +1,4 @@
-package stone.rpbot.slash.commands;
+package stone.rpbot.slash.commands.tag;
 
 import stone.rpbot.slash.SlashCommand;
 
