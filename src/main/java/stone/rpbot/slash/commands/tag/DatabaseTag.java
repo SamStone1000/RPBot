@@ -1,6 +1,8 @@
 package stone.rpbot.slash.commands.tag;
 
 import java.lang.IllegalArgumentException;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -78,6 +80,56 @@ public class DatabaseTag implements Tag {
         }
         public TagDatabaseException(Type type) {
             super(type, "Error of Type: "+type.name());
+        }
+    }
+
+    public class Builder {
+
+        private String primaryAlias;
+        private String shortDescription;
+        private String description;
+        private Tag superTag;
+        private Set<Tag> subTags = new HashSet<>();
+        private Set<String> aliases = new HashSet<>();
+        private Map<Long, Tag.Rating> ratings = new HashMap<>();
+
+        public Tag build() {
+            return new Tag(primaryAlias, shortDescription, description, superTag, subTags, aliases, ratings);
+        }
+
+        public Builder setPrimaryAlias(String alias) {
+            this.primaryAlias = alias;
+            return this;
+        }
+
+        public Builder addAlias(String alias) {
+            this.aliases.add(alias);
+            return this;
+        }
+
+        public Builder setDescription(String description) {
+            this.description = description;
+            return this;
+        }
+
+        public Builder setShortDescription(String shortDescription) {
+            this.shortDescription = shortDescription;
+            return this;
+        }
+
+        public Builder setSuperTag(Tag tag) {
+            this.superTag = tag;
+            return this;
+        }
+
+        public Builder addSubTag(Tag tag) {
+            this.subTags.add(tag);
+            return this;
+        }
+
+        public Builder addRating(long user, Tag.Rating rating) {
+            this.ratings.put(user, rating);
+            return this;
         }
     }
 }
