@@ -1,6 +1,7 @@
 package stone.rpbot.slash.commands.tag;
 
-import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
 
 public interface Tag {
 
@@ -61,13 +62,9 @@ public interface Tag {
             // the tag was explcitly rated, ie the value is what the user gave
             EXPLICIT;
         }
-        
-        public boolean wasExplicit() {
-            return this.type == Type.EXPLCIT;
-        }
 
-        public boolean wasImplicit() {
-            return this.type == Type.IMPLICIT_SUPER || this.type == Type.IMPLICIT_SUB;
+        public static Rating of(byte value, byte type) {
+            return new Rating(value, Type.of(type));
         }
     }
 }

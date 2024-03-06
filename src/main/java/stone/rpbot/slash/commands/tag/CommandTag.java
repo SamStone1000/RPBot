@@ -10,3 +10,4 @@ public class CommandTag implements SlashCommand {
     public void onSlashCommand(SlashCommandInteractionEvent event) {
         
     }
+}
