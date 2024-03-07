@@ -1,5 +1,6 @@
 package stone.rpbot.slash.commands.tag;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -16,7 +17,22 @@ public class LazyTag implements Tag {
     private final Set<Long> subTags;
 
     private final Set<String> aliases;
-    private final Map<Long, Tag.Ratings> ratings;
+    private final Map<Long, Tag.Rating> ratings;
+
+    @Override
+    public String getPrimaryAlias() {
+        return this.primaryAlias;
+    }
+
+    @Override
+    public String getShortDescription() {
+        return this.shortDescription;
+    }
+
+    @Override
+    public String getDescription() {
+        return this.description;
+    }
 
     @Override
     public Tag getSuperTag() {
@@ -31,7 +47,16 @@ public class LazyTag implements Tag {
         }
         return out;
     }
-                    
+    
+    @Override
+    public Set<String> getAliases() {
+        return this.aliases;
+    }
+    
+    @Override
+    public Map<Long, Tag.Rating> getRatings() {
+        return this.ratings;
+    }
     
     public LazyTag(String primary, String shortDescription, String description, long superTag, Set<Long> subTags, Set<String> aliases, Map<Long, Tag.Rating> ratings) {
         this.primaryAlias = primary;
@@ -43,7 +68,7 @@ public class LazyTag implements Tag {
         this.ratings = ratings;
     }
 
-    public class Builder {
+    public static class Builder {
 
         private String primaryAlias;
         private String shortDescription;
@@ -54,7 +79,7 @@ public class LazyTag implements Tag {
         private Map<Long, Tag.Rating> ratings = new HashMap<>();
 
         public Tag build() {
-            return new Tag(primaryAlias, shortDescription, description, superTag, subTags, aliases, ratings);
+            return new LazyTag(primaryAlias, shortDescription, description, superTag, subTags, aliases, ratings);
         }
 
         public Builder setPrimaryAlias(String alias) {

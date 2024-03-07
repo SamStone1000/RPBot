@@ -27,7 +27,15 @@ public interface SlashCommand {
 
     public void onSlashCommand(SlashCommandInteractionEvent event);
 
-    public String getManInfo();
+
+    private static Path manDir = Path.of("resources", "man");
+    default public String getManInfo() {
+        return Files.readString(manDir.resolve(getManPath()));
+    }
+
+    default public Path getManPath() {
+        return path.of("unimplemented.txt");
+    }
 
     public String getName();
     public CommandData getCommandData();

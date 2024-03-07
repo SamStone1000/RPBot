@@ -18,6 +18,7 @@ import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import stone.rpbot.record.LyricStore;
+import stone.rpbot.slash.commands.tag.DatabaseTagFactory;
 
 public class SharedConstants {
 
@@ -41,6 +42,7 @@ public class SharedConstants {
 		SharedConstants.jda = jda;
 		List<Guild> guilds = jda.getGuilds();
 
+                DatabaseTagFactory.connect();
 		DATABASE_CONNECTION = DriverManager.getConnection(SQL_CONNECTION + ";create=true");
 		DATABASE_CONNECTION.setAutoCommit(false);
 		Logger logger = LoggerFactory.getLogger(SharedConstants.class);
@@ -78,6 +80,7 @@ public class SharedConstants {
 			try {
 				SCHEDULER.shutdown();
 				DATABASE_CONNECTION.close();
+                                DatabaseTagFactory.disconnect();
 			} catch (SQLException se) {
 				if (((se.getErrorCode() == 50000) && ("XJ015".equals(se.getSQLState())))) {
 					// we got the expected exception

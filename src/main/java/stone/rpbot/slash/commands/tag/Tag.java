@@ -31,14 +31,14 @@ public interface Tag {
 
     /**
      * The supertag that this tag is under
-     * Each supertag has a unique namespace for subtags (like classes/packages) and each
+     * Each supertag has a unique name space for subtags (like classes/packages) and each
      * Tag can only have 1 supertag
      */
     public Tag getSuperTag();
 
     /**
      * The Set of subtags for this tag
-     * Tags can have an arbitary amount of subtags
+     * Tags can have an arbitrary amount of subtags
      */
     
     public Set<Tag> getSubTags();
@@ -51,20 +51,39 @@ public interface Tag {
      */
     public Map<Long, Rating> getRatings();
 
-    public record Rating(byte value, Type type) {
+    public record Rating(int value, Type type) {
+        /**
+         * An enum representing why this rating exists
+         */
+
+        // DO NOT REORDER THESE
+        // The order in which these are declared determines what number they are in the database
         public enum Type {
             // the tag, supertag, and subtags were never rated, ie value is meaningless
-            UNRATED,
+            UNRATED(false, false),
             // the tag wasn't rated but the supertag was (ignores subtags), ie value is the supertag's
-            IMPLICIT_SUPER, 
+            IMPLICIT_SUPER(false, true),
             // the tag and supertag wasn't rated, but the subtag was, ie value is the average of subtags
-            IMPLICIT_SUB,
+            IMPLICIT_SUB(true, false),
             // the tag was explcitly rated, ie the value is what the user gave
-            EXPLICIT;
+            EXPLICIT(true, true);
+
+            public static final Type[] VALUES = Type.values();
+            
+            private final boolean shouldPropagateUp;
+            private final boolean shouldPropagateDown;
+            
+            private Type(boolean shouldPropagateUp, boolean shouldPropagateDown) {
+                this.shouldPropagateUp = shouldPropagateUp;
+                this.shouldPropagateDown = shouldPropagateDown;
+            }
+
+            public boolean shouldPropagateUp() {return this.shouldPropagateUp;}
+            public boolean shouldPropagateDown() {return this.shouldPropagateDown;}
         }
 
-        public static Rating of(byte value, byte type) {
-            return new Rating(value, Type.of(type));
+        public static Rating of(int value, short type) {
+            return new Rating(value, Type.VALUES[type]);
         }
     }
 }
