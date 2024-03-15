@@ -13,6 +13,6 @@ public class CommandTag implements SlashCommand {
 
     @Override
     public String getManInfo() {
-        
+        return "does tag rating and stuff";
     }
 }

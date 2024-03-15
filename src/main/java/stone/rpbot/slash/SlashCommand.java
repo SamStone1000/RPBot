@@ -26,17 +26,8 @@ import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 public interface SlashCommand {
 
     public void onSlashCommand(SlashCommandInteractionEvent event);
-
-
-    private static Path manDir = Path.of("resources", "man");
-    default public String getManInfo() {
-        return Files.readString(manDir.resolve(getManPath()));
-    }
-
-    default public Path getManPath() {
-        return path.of("unimplemented.txt");
-    }
-
+    
+    public String getManInfo();
     public String getName();
     public CommandData getCommandData();
 }
