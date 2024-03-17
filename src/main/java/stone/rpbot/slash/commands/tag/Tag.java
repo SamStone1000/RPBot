@@ -6,11 +6,11 @@ import java.util.Set;
 public interface Tag {
 
     /**
-     * The primary alias of this tag
+     * The name of this tag
      * Mainly used for when the tag needs to be displayed and can't have all the
      * aliases on screen at once
      */ 
-    public String getPrimaryAlias();
+    public String getName();
 
     /**
      * All the aliases of this tag

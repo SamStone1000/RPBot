@@ -8,7 +8,10 @@ public class CommandTag implements SlashCommand {
 
     @Override
     public void onSlashCommand(SlashCommandInteractionEvent event) {
-        
+        String subcommand = event.getSubcommandName();
+        switch (subcommand) {
+        case "create":
+            
     }
 
     @Override

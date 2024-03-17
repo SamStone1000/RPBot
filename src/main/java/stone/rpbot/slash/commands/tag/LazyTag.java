@@ -9,7 +9,9 @@ public class LazyTag implements Tag {
 
     private static final TagFactory factory = new DatabaseTagFactory();
 
-    private final String primaryAlias;
+    private final long id;
+    
+    private final String name;
     private final String shortDescription;
     private final String description;
 
@@ -19,9 +21,13 @@ public class LazyTag implements Tag {
     private final Set<String> aliases;
     private final Map<Long, Tag.Rating> ratings;
 
+    public long getID() {
+        return this.id;
+    }
+    
     @Override
-    public String getPrimaryAlias() {
-        return this.primaryAlias;
+    public String getName() {
+        return this.name;
     }
 
     @Override
@@ -58,8 +64,9 @@ public class LazyTag implements Tag {
         return this.ratings;
     }
     
-    public LazyTag(String primary, String shortDescription, String description, long superTag, Set<Long> subTags, Set<String> aliases, Map<Long, Tag.Rating> ratings) {
-        this.primaryAlias = primary;
+    public LazyTag(long id, String name, String shortDescription, String description, long superTag, Set<Long> subTags, Set<String> aliases, Map<Long, Tag.Rating> ratings) {
+        this.id = id;
+        this.name = name;
         this.shortDescription = shortDescription;
         this.description = description;
         this.superTag = superTag;
@@ -69,8 +76,8 @@ public class LazyTag implements Tag {
     }
 
     public static class Builder {
-
-        private String primaryAlias;
+        private long id;
+        private String name;
         private String shortDescription;
         private String description;
         private long superTag;
@@ -79,11 +86,16 @@ public class LazyTag implements Tag {
         private Map<Long, Tag.Rating> ratings = new HashMap<>();
 
         public Tag build() {
-            return new LazyTag(primaryAlias, shortDescription, description, superTag, subTags, aliases, ratings);
+            return new LazyTag(id, name, shortDescription, description, superTag, subTags, aliases, ratings);
         }
 
-        public Builder setPrimaryAlias(String alias) {
-            this.primaryAlias = alias;
+        public Builder setID(long id) {
+            this.id = id;
+            return this;
+        }
+
+        public Builder setName(String name) {
+            this.name = name;
             return this;
         }
 
