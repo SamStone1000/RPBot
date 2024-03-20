@@ -6,9 +6,10 @@ package stone.rpbot.slash.commands.tag;
  */
 public interface TagManager<T extends Tag> {
     public T createTag(String name, String shortDescription, String description, T superTag);
-    public boolean addAliases(T tag, String alias...);
-    public boolean removeAliases(T tag, String alias...);
-    public boolean rateTag(T tag, long user, Tag.Rating rating);
+    public boolean addAliases(T tag, String... aliases);
+    public boolean removeAliases(T tag, String... aliases);
+    public boolean addRating(T tag, long user, Tag.Rating rating);
+    public boolean updateRating(T tag, long user, Tag.Rating rating);
 
     public T getTag(String tag);
 }

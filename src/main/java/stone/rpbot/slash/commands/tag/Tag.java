@@ -61,9 +61,9 @@ public interface Tag {
         public enum Type {
             // the tag, supertag, and subtags were never rated, ie value is meaningless
             UNRATED(false, false),
-            // the tag wasn't rated but the supertag was (ignores subtags), ie value is the supertag's
+            // the tag and subtags weren't rated but the supertag was, ie value is the supertag's
             IMPLICIT_SUPER(false, true),
-            // the tag and supertag wasn't rated, but the subtag was, ie value is the average of subtags
+            // the tag  wasn't rated, but the subtags were, ie value is the average of subtags
             IMPLICIT_SUB(true, false),
             // the tag was explcitly rated, ie the value is what the user gave
             EXPLICIT(true, true);
@@ -80,10 +80,40 @@ public interface Tag {
 
             public boolean shouldPropagateUp() {return this.shouldPropagateUp;}
             public boolean shouldPropagateDown() {return this.shouldPropagateDown;}
-        }
+            /**
+             * Can this tag override the other tag
+             */
+            public boolean canOverride(Type other) {
+                if (other == UNRATED)
+                    return true;
+                /*
+                 * This tag's subtags were rated and the other tag's supertag
+                 * was rated. Override it.
+                 * it's like rating a band and a album's songs, but not the album
+                 */
+                if (this == IMPLICIT_SUB && other == IMPLICIT_SUPER)
+                    return true;
+                
+                return false;
+            }
+
+            public boolean canBeOverriden(Type other) {
+                return other.canOverride(this);
+            }
 
         public static Rating of(int value, short type) {
             return new Rating(value, Type.VALUES[type]);
+        }
+
+        public boolean shouldPropagateUp() {return this.type.shouldPropagateUp();}
+        public boolean shouldPropagateDown() {return this.type.shouldPropagateDown();}
+
+        public boolean canOverride(Rating other) {
+            return this.type.canOverride(other.type);
+        }
+
+        public boolean canBeOverriden(Rating other) {
+            return this.type.canBeOverriden(other.type);
         }
     }
 }

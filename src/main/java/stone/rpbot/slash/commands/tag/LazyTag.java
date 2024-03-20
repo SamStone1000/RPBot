@@ -42,7 +42,7 @@ public class LazyTag implements Tag {
 
     @Override
     public Tag getSuperTag() {
-        factory.makeTag(superTag);
+        return this.superTag == -1 ? null : factory.makeTag(superTag);
     }
 
     @Override
@@ -63,6 +63,16 @@ public class LazyTag implements Tag {
     public Map<Long, Tag.Rating> getRatings() {
         return this.ratings;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof Tag))
+            return false;
+        if (!(oinstanceof LazyTag))
+            return false; //go by fields someday
+        LazyTag other = (LazyTag) o;
+        return this.id == other.id;
+    }
     
     public LazyTag(long id, String name, String shortDescription, String description, long superTag, Set<Long> subTags, Set<String> aliases, Map<Long, Tag.Rating> ratings) {
         this.id = id;
@@ -76,16 +86,16 @@ public class LazyTag implements Tag {
     }
 
     public static class Builder {
-        private long id;
-        private String name;
-        private String shortDescription;
-        private String description;
-        private long superTag;
+        private Long id;
+        private String name = null;
+        private String shortDescription = null;
+        private String description = null;
+        private Long superTag = null;
         private Set<Long> subTags = new HashSet<>();
         private Set<String> aliases = new HashSet<>();
         private Map<Long, Tag.Rating> ratings = new HashMap<>();
 
-        public Tag build() {
+        public LazyTag build() {
             return new LazyTag(id, name, shortDescription, description, superTag, subTags, aliases, ratings);
         }
 
