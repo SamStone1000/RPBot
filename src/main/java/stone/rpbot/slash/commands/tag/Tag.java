@@ -51,6 +51,11 @@ public interface Tag {
      */
     public Map<Long, Rating> getRatings();
 
+    /**
+     * A unique id to identify each tag
+     */
+    public long getID();
+
     public record Rating(int value, Type type) {
         /**
          * An enum representing why this rating exists
@@ -66,7 +71,7 @@ public interface Tag {
             // the tag  wasn't rated, but the subtags were, ie value is the average of subtags
             IMPLICIT_SUB(true, false),
             // the tag was explcitly rated, ie the value is what the user gave
-            EXPLICIT(true, true);
+            EXPLICIT(true, true),
 
             public static final Type[] VALUES = Type.values();
             
@@ -81,15 +86,21 @@ public interface Tag {
             public boolean shouldPropagateUp() {return this.shouldPropagateUp;}
             public boolean shouldPropagateDown() {return this.shouldPropagateDown;}
             /**
-             * Can this tag override the other tag
+             * Can this type override the other type
              */
             public boolean canOverride(Type other) {
-                if (other == UNRATED)
+                if (other == UNRATED) // never rated so fill it out
+                    return true;
+                if (other == EXPLICIT) // is rated so never overwrite
+                    return false;
+                if (this == EXPLICIT) // this tag is rated and it's the best
+                                      // source of true rating, so override
                     return true;
                 /*
-                 * This tag's subtags were rated and the other tag's supertag
-                 * was rated. Override it.
-                 * it's like rating a band and a album's songs, but not the album
+                 * This tag's subtags were rated but the other tag's supertag
+                 * was rated. Override it.  it's like rating a band and a
+                 * album's songs, but not the album, so the rating of the songs
+                 * should determine the rating of the album
                  */
                 if (this == IMPLICIT_SUB && other == IMPLICIT_SUPER)
                     return true;
@@ -103,6 +114,14 @@ public interface Tag {
 
         public static Rating of(int value, short type) {
             return new Rating(value, Type.VALUES[type]);
+        }
+
+        public static Rating of(int value, Type type) {
+            return new Rating(value, type);
+        }
+
+        public Rating with(Type type) {
+            return new Rating(this.value, type);
         }
 
         public boolean shouldPropagateUp() {return this.type.shouldPropagateUp();}

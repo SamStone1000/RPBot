@@ -116,42 +116,71 @@ public class DatabaseTagManager implements TagManager<LazyTag> {
                 return false;
             }
         }
-        onRatingChanged(tag, user, rating);
-        return true;
+        return onRatingChanged(tag, user, rating);
     }
 
     @Override
-    public boolean updateRating(LazyTag tag, long user, Tag.Rating rating) {
-        synchronized (updateRating) {
-            try {
-                updateRating.setLong(3, tag.getID());
-                updateRating.setLong(4, user);
-                updateRating.setInt(1, rating.getValue());
-                updateRating.setShort(2, (short) rating.getType().ordinal());
-                updateRating.executeUpdate();
-            } catch (SQLException e) {
-                return false;
+    public boolean updateRating(LazyTag tag, long user, Rating rating) {
+        Rating oldRating = tag.getRatings().get(user);
+        if (!oldRating.equals(rating)) {
+            synchronized (updateRating) {
+                try {
+                    updateRating.setLong(3, tag.getID());
+                    updateRating.setLong(4, user);
+                    updateRating.setInt(1, rating.getValue());
+                    updateRating.setShort(2, (short) rating.getType().ordinal());
+                    updateRating.executeUpdate();
+                } catch (SQLException e) {
+                    return false;
+                }
             }
+
+
+            return onRatingChanged(tag, user, oldRating, rating);
+        } else {
+            return true;
         }
-        onRatingChanged(tag, user, tag.getRating(), rating);
-        return true;
     }
 
-    public void onRatingChanged(LazyTag tag, long user, Tag.Rating newRating) {
-        if (rating.shouldPropagateUp()) {
-            Tag superTag = tag.getSuperTag();
-            if (superTag != null) {
-                Rating superRating = superTag.getRatings().get(user);
-                if (superRating.canBeOverriden(newRating)) {
-                Set<Tag> subTags = superTag.getSubTags();
-                int avgRating = (int) (subTags.stream()
-                                       .map(t -> t.getRatings().get(user))
-                                       .filter(r -> r.shouldPropagateUp())
-                                       .mapToInt(r -> r.getValue())
-                                       .average().getAsDouble());
+    @Override
+    public boolean removeRating(LazyTag tag, long user) {
+        
+    }
+
+    public boolean onRatingChanged(LazyTag tag, long user, Rating newRating) {
+        if (newRating.getType() == UNRATED) {
+            // deleting a rating, have to clear out implicit ratings
+            
+        } else {
+            boolean hasFailed = false;
+            if (newRating.shouldPropagateUp()) {
+                Tag superTag = tag.getSuperTag();
+                if (superTag != null) {
+                    Rating superRating = superTag.getRatings().get(user);
+                    if (superRating.canBeOverriden(newRating)) {
+                        Set<Tag> siblingTags = superTag.getSubTags();
+                        int avgRating = (int) (siblingTags.stream()
+                                               .map(t -> t.getRatings().get(user))
+                                               .filter(r -> r.shouldPropagateUp())
+                                               .mapToInt(r -> r.getValue())
+                                               .average().getAsDouble());
+
+                        hasFailed |= !this.setRating(tag, user, avgRating, Rating.Type.IMPLICIT_SUB);
+                    }
+                }
+            }
+
+            if (newRating.shouldPropagateDown()) {
+                Rating subRating = newRating.with(Rating.Type.IMPLICIT_SUPER);
+                Set<Tag> subTags = tag.getSubTags();
+                for (Tag subTag : subTags) {
+                    if (subTag.getRating().get(user).canBeOverriden(newRating))
+                        hasFailed |= !this.setRating(tag, user, subRating);
                 }
             }
         }
+
+        return !hasFailed;
     }
                 
 }

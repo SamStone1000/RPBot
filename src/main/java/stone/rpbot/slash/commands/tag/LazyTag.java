@@ -21,6 +21,7 @@ public class LazyTag implements Tag {
     private final Set<String> aliases;
     private final Map<Long, Tag.Rating> ratings;
 
+    @Override
     public long getID() {
         return this.id;
     }
