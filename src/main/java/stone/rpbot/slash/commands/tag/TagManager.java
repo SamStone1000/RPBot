@@ -5,25 +5,25 @@ import stone.rpbot.slash.commands.tag.Tag.Rating;
  * The entity that controls all the tags
  * Can make new tags, delete tags, create new root tags, etc.
  */
-public interface TagManager<T extends Tag> {
-    public T createTag(String name, String shortDescription, String description, T superTag);
-    public boolean addAliases(T tag, String... aliases);
-    public boolean removeAliases(T tag, String... aliases);
-    public boolean addRating(T tag, long user, Rating rating);
-    public boolean updateRating(T tag, long user, Rating rating);
-    public boolean removeRating(T tag, long user);
+public interface TagManager {
+    public Tag createTag(String name, String shortDescription, String description, Tag superTag);
+    public boolean addAliases(Tag tag, String... aliases);
+    public boolean removeAliases(Tag tag, String... aliases);
+    public boolean addRating(Tag tag, long user, Rating rating);
+    public boolean updateRating(Tag tag, long user, Rating rating);
+    public boolean removeRating(Tag tag, long user);
 
-    public default boolean setRating(T tag, long user, Rating rating) {
-        if (tag.getRatings().get(user).getType() == UNRATED) {
+    public default boolean setRating(Tag tag, long user, Rating rating) {
+        if (tag.getRatings().get(user).type() == Rating.Type.UNRATED) {
             return addRating(tag, user, rating);
         } else {
             return updateRating(tag, user, rating);
         }
     }
 
-    public default boolean setRating(T tag, long user, int value, Rating.Type type) {
+    public default boolean setRating(Tag tag, long user, int value, Rating.Type type) {
         return setRating(tag, user, Rating.of(value, type));
     }
     
-    public T getTag(String tag);
+    public Tag getTag(String tag);
 }

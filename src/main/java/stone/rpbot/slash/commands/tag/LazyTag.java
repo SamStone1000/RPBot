@@ -7,7 +7,7 @@ import java.util.Set;
 
 public class LazyTag implements Tag {
 
-    private static final TagFactory factory = new DatabaseTagFactory();
+    static TagFactory FACTORY;
 
     private final long id;
     
@@ -43,14 +43,14 @@ public class LazyTag implements Tag {
 
     @Override
     public Tag getSuperTag() {
-        return this.superTag == -1 ? null : factory.makeTag(superTag);
+        return this.superTag == -1 ? null : FACTORY.makeTag(superTag);
     }
 
     @Override
     public Set<Tag> getSubTags() {
         Set<Tag> out = new HashSet<>();
         for (long sub : this.subTags) {
-            out.add(factory.makeTag(sub));
+            out.add(FACTORY.makeTag(sub));
         }
         return out;
     }
@@ -69,7 +69,7 @@ public class LazyTag implements Tag {
     public boolean equals(Object o) {
         if (!(o instanceof Tag))
             return false;
-        if (!(oinstanceof LazyTag))
+        if (!(o instanceof LazyTag))
             return false; //go by fields someday
         LazyTag other = (LazyTag) o;
         return this.id == other.id;

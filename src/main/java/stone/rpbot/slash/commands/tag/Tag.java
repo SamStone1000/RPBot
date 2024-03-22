@@ -50,6 +50,9 @@ public interface Tag {
      * ratings for unrated and the like
      */
     public Map<Long, Rating> getRatings();
+    public default Rating getRating(long user) {
+        return this.getRatings().get(user);
+    }
 
     /**
      * A unique id to identify each tag
@@ -71,7 +74,7 @@ public interface Tag {
             // the tag  wasn't rated, but the subtags were, ie value is the average of subtags
             IMPLICIT_SUB(true, false),
             // the tag was explcitly rated, ie the value is what the user gave
-            EXPLICIT(true, true),
+            EXPLICIT(true, true);
 
             public static final Type[] VALUES = Type.values();
             
@@ -111,6 +114,7 @@ public interface Tag {
             public boolean canBeOverriden(Type other) {
                 return other.canOverride(this);
             }
+        }
 
         public static Rating of(int value, short type) {
             return new Rating(value, Type.VALUES[type]);
@@ -122,6 +126,10 @@ public interface Tag {
 
         public Rating with(Type type) {
             return new Rating(this.value, type);
+        }
+
+        public Rating with(int value) {
+            return new Rating(value, this.type);
         }
 
         public boolean shouldPropagateUp() {return this.type.shouldPropagateUp();}

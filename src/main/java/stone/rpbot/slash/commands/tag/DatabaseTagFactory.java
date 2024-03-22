@@ -8,6 +8,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 public class DatabaseTagFactory implements TagFactory {
     private static Connection DATABASE;
@@ -167,6 +168,8 @@ public class DatabaseTagFactory implements TagFactory {
                                 "ON DELETE CASCADE);"
                               );
         }
+
+        LazyTag.FACTORY = new DatabaseTagFactory();
     }
 
     public static void disconnect() throws SQLException {

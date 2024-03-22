@@ -2,14 +2,16 @@ package stone.rpbot.slash.commands.tag;
 
 import stone.rpbot.slash.commands.tag.Tag.Rating;
 
+import java.util.Set;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public class DatabaseTagManager implements TagManager<LazyTag> {
+public class DatabaseTagManager implements TagManager {
     static Connection DATABASE;
 
-    private final TagFactory factory = new DatabaseTagFactory();
+    private final TagFactory factory;
     
     private final PreparedStatement insertInfo;
     private final PreparedStatement insertRelation;
@@ -18,7 +20,9 @@ public class DatabaseTagManager implements TagManager<LazyTag> {
     private final PreparedStatement insertRating;
     private final PreparedStatement updateRating;
 
-    public DatabaseTagManager() {
+    public DatabaseTagManager() throws SQLException {
+        this.factory = new DatabaseTagFactory();
+        
         this.insertInfo = DATABASE.prepareStatement("INSERT INTO info(name, short_description, description VALUES (?, ?, ?) OUTPUT id;");
         this.insertRelation = DATABASE.prepareStatement("INSERT INTO relations(super, sub) VALUES (?, ?);");
         this.insertAlias = DATABASE.prepareStatement("INSERT INTO aliases(id, alias);");
@@ -35,15 +39,17 @@ public class DatabaseTagManager implements TagManager<LazyTag> {
     }
 
     @Override
-    public LazyTag createTag(String name, String shortDescription, String description, LazyTag superTag) {
+    public Tag createTag(String name, String shortDescription, String description, Tag superTag) {
         long id;
-        synchronized (insertTag) {
+        synchronized (insertInfo) {
             try {
                 insertInfo.setString(1, name);
                 insertInfo.setString(2, shortDescription);
                 insertInfo.setString(3, description);
-                ResultSet id = insertInfo.executeQuery();
-                id = id.getLong("id");
+                try (ResultSet rs = insertInfo.executeQuery();) {
+                    rs.next();
+                    id = rs.getLong("id");
+                }
             } catch (SQLException e) {
                 return null;
             }
@@ -57,6 +63,7 @@ public class DatabaseTagManager implements TagManager<LazyTag> {
                 insertRelation.setLong(2, id);
                 insertRelation.executeUpdate();
             } catch (SQLException e) {
+                return null;
             }
         }
 
@@ -70,10 +77,10 @@ public class DatabaseTagManager implements TagManager<LazyTag> {
     }
 
     @Override
-    public boolean addAliases(LazyTag tag, String... aliases) {
+    public boolean addAliases(Tag tag, String... aliases) {
         synchronized (insertAlias) {
-            insertAlias.setLong(1, tag.getID());
             try {
+                insertAlias.setLong(1, tag.getID());
                 for (String alias : aliases) {
                     insertAlias.setString(2, alias);
                     insertAlias.executeUpdate();
@@ -87,14 +94,15 @@ public class DatabaseTagManager implements TagManager<LazyTag> {
     }
     
     @Override
-    public boolean removeAliases(LazyTag tag, String... aliases) {
+    public boolean removeAliases(Tag tag, String... aliases) {
         synchronized (removeAlias) {
-            removeAlias.setLong(1, tag.getID());
             try {
-            for (String alias : aliases) {
-                removeAlias.setString(2, alias);
-                removeAlias.executeUpdate();
-            }
+                removeAlias.setLong(1, tag.getID());
+
+                for (String alias : aliases) {
+                    removeAlias.setString(2, alias);
+                    removeAlias.executeUpdate();
+                }
             } catch (SQLException e) {
                 return false;
             }
@@ -104,13 +112,13 @@ public class DatabaseTagManager implements TagManager<LazyTag> {
     }
 
     @Override
-    public boolean addRating(LazyTag tag, long user, Tag.Rating rating) {
+    public boolean addRating(Tag tag, long user, Tag.Rating rating) {
         synchronized (insertRating) {
             try {
                 insertRating.setLong(1, tag.getID());
                 insertRating.setLong(2, user);
-                insertRating.setInt(3, rating.getValue());
-                insertRating.setShort(4, (short) rating.getType().ordinal());
+                insertRating.setInt(3, rating.value());
+                insertRating.setShort(4, (short) rating.type().ordinal());
                 insertRating.executeUpdate();
             } catch (SQLException e) {
                 return false;
@@ -120,15 +128,15 @@ public class DatabaseTagManager implements TagManager<LazyTag> {
     }
 
     @Override
-    public boolean updateRating(LazyTag tag, long user, Rating rating) {
+    public boolean updateRating(Tag tag, long user, Rating rating) {
         Rating oldRating = tag.getRatings().get(user);
         if (!oldRating.equals(rating)) {
             synchronized (updateRating) {
                 try {
                     updateRating.setLong(3, tag.getID());
                     updateRating.setLong(4, user);
-                    updateRating.setInt(1, rating.getValue());
-                    updateRating.setShort(2, (short) rating.getType().ordinal());
+                    updateRating.setInt(1, rating.value());
+                    updateRating.setShort(2, (short) rating.type().ordinal());
                     updateRating.executeUpdate();
                 } catch (SQLException e) {
                     return false;
@@ -136,51 +144,51 @@ public class DatabaseTagManager implements TagManager<LazyTag> {
             }
 
 
-            return onRatingChanged(tag, user, oldRating, rating);
+            return onRatingChanged(tag, user, rating);
         } else {
             return true;
         }
     }
 
     @Override
-    public boolean removeRating(LazyTag tag, long user) {
-        
+    public boolean removeRating(Tag tag, long user) {
+        return false;
     }
 
-    public boolean onRatingChanged(LazyTag tag, long user, Rating newRating) {
-        if (newRating.getType() == UNRATED) {
-            // deleting a rating, have to clear out implicit ratings
-            
-        } else {
-            boolean hasFailed = false;
-            if (newRating.shouldPropagateUp()) {
-                Tag superTag = tag.getSuperTag();
-                if (superTag != null) {
-                    Rating superRating = superTag.getRatings().get(user);
-                    if (superRating.canBeOverriden(newRating)) {
-                        Set<Tag> siblingTags = superTag.getSubTags();
-                        int avgRating = (int) (siblingTags.stream()
-                                               .map(t -> t.getRatings().get(user))
-                                               .filter(r -> r.shouldPropagateUp())
-                                               .mapToInt(r -> r.getValue())
-                                               .average().getAsDouble());
+    public boolean onRatingChanged(Tag tag, long user, Rating newRating) {
+        boolean hasFailed = false;
+        if (newRating.shouldPropagateUp()) {
+            Tag superTag = tag.getSuperTag();
+            if (superTag != null) {
+                Rating superRating = superTag.getRatings().get(user);
+                if (superRating.canBeOverriden(newRating)) {
+                    Set<Tag> siblingTags = superTag.getSubTags();
+                    int avgValue = (int) (siblingTags.stream()
+                                           .map(t -> t.getRatings().get(user))
+                                           .filter(r -> r.shouldPropagateUp())
+                                           .mapToInt(r -> r.value())
+                                           .average().getAsDouble());
 
-                        hasFailed |= !this.setRating(tag, user, avgRating, Rating.Type.IMPLICIT_SUB);
-                    }
-                }
-            }
-
-            if (newRating.shouldPropagateDown()) {
-                Rating subRating = newRating.with(Rating.Type.IMPLICIT_SUPER);
-                Set<Tag> subTags = tag.getSubTags();
-                for (Tag subTag : subTags) {
-                    if (subTag.getRating().get(user).canBeOverriden(newRating))
-                        hasFailed |= !this.setRating(tag, user, subRating);
+                    hasFailed |= !this.setRating(tag, user, avgValue, Rating.Type.IMPLICIT_SUB);
                 }
             }
         }
 
+        if (newRating.shouldPropagateDown()) {
+            Rating subRating = newRating.with(Rating.Type.IMPLICIT_SUPER);
+            Set<Tag> subTags = tag.getSubTags();
+            for (Tag subTag : subTags) {
+                if (subTag.getRating(user).canBeOverriden(newRating))
+                    hasFailed |= !this.setRating(tag, user, subRating);
+            }
+        }
+
         return !hasFailed;
+    }
+
+    @Override
+    public Tag getTag(String id) {
+        return null;
     }
                 
 }
