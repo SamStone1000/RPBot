@@ -170,6 +170,7 @@ public class DatabaseTagFactory implements TagFactory {
         }
 
         LazyTag.FACTORY = new DatabaseTagFactory();
+        DatabaseTagManager.INSTANCE = new DatabaseTagManager();
     }
 
     public static void disconnect() throws SQLException {

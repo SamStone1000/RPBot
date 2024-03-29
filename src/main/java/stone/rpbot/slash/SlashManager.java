@@ -17,17 +17,20 @@
  */
 package stone.rpbot.slash;
 
-import java.util.HashMap;
-import java.util.Map;
+import stone.rpbot.slash.commands.CommandMan;
+import stone.rpbot.slash.commands.CommandTime;
+import stone.rpbot.slash.commands.tag.CommandTag;
 
+import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.requests.restaction.CommandListUpdateAction;
-import stone.rpbot.slash.commands.CommandMan;
-import stone.rpbot.slash.commands.CommandTime;
-import stone.rpbot.slash.commands.tag.CommandTag;
+
+import java.util.HashMap;
+import java.util.Map;
+
 
 /**
  * 
@@ -35,6 +38,8 @@ import stone.rpbot.slash.commands.tag.CommandTag;
 public class SlashManager extends ListenerAdapter {
 
     private Map<String, SlashCommand> commands = new HashMap<>();
+
+    private Map<String, ModalHandler> modals = new HashMap<>();
 
     public void init(CommandListUpdateAction commands) {
         registerSlashCommand(commands, new CommandMan(this));
@@ -47,9 +52,20 @@ public class SlashManager extends ListenerAdapter {
         commands.get(event.getName()).onSlashCommand(event);
     }
 
+    @Override
+    public void onModalInteraction(ModalInteractionEvent event) {
+        List<ModalMapping> mappings = event.getValues();
+        Map<String, ModalMapping> map = new HashMap<>();
+        for (ModalMapping mapping : mappings) {
+            map.put(mapping.getID(), mapping);
+        }
+        modals.get(event.getModalId()).onModal(map);
+    }
+
     public void registerSlashCommand(CommandListUpdateAction action, SlashCommand command) {
         this.commands.put(command.getName(), command);
         action.addCommands(command.getCommandData());
+        modals.addAll(commands.getModals();
     }
 
     public SlashCommand getSlashCommand(String key) {

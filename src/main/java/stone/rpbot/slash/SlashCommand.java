@@ -17,8 +17,13 @@
  */
 package stone.rpbot.slash;
 
+import stone.rpbot.slash.ModalHandler;
+
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+
+import java.util.Collections;
+import java.util.Map;
 
 /**
  * 
@@ -30,4 +35,7 @@ public interface SlashCommand {
     public String getManInfo();
     public String getName();
     public CommandData getCommandData();
+    public default Map<String, ModalHandler> getModals() {
+        return Collectons.emptyMap<String, ModalHandler>();
+    }
 }

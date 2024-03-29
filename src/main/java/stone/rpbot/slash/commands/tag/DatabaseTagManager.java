@@ -11,6 +11,8 @@ import java.sql.SQLException;
 public class DatabaseTagManager implements TagManager {
     static Connection DATABASE;
 
+    public static TagManager INSTANCE;
+
     private final TagFactory factory;
     
     private final PreparedStatement insertInfo;
