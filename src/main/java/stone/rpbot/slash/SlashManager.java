@@ -26,6 +26,8 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.requests.restaction.CommandListUpdateAction;
 
+import stone.rpbot.slash.say.CommandSay;
+
 /**
  * 
  */
@@ -35,11 +37,13 @@ public class SlashManager extends ListenerAdapter {
 
 	public void init(CommandListUpdateAction commands) {
 		registerSlashCommand("man", new ManCommand(this));
+                registerSlashCommand("say", new CommandSay());
 		commands.addCommands(
 				Commands.slash("time", "Produces a Discord timestamp from input").addOption(OptionType.STRING, "input",
 						"Input can take the form of absolute inputs or relative inputs prefixed with a +/-", true));
 		commands.addCommands(Commands.slash("man", "Gets manual for specified command").addOption(OptionType.STRING,
 				ManCommand.OPTION_COMMAND, "The name of the command to get the manual for", true));
+                commands.addCommands(Commands.slash("say", "funny astronaut voice").addOption(OptionType.STRING, "text", "Text to say", true));
 	}
 
 	@Override

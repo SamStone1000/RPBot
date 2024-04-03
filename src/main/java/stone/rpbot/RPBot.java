@@ -90,10 +90,10 @@ public class RPBot extends ListenerAdapter {
 	public static void start(String[] args) throws SQLException, InterruptedException, NumberFormatException,
 			IOException, SchedulerException, LoginException {
 		JDABuilder builder = JDABuilder.createLight(args[0], GatewayIntent.GUILD_MESSAGES, GatewayIntent.GUILD_MEMBERS,
-				GatewayIntent.MESSAGE_CONTENT);
+                                                            GatewayIntent.MESSAGE_CONTENT, GatewayIntent.GUILD_VOICE_STATES);
 		// builder.addEventListeners(new Main());
 		builder.setMemberCachePolicy(MemberCachePolicy.ALL);
-		builder.enableCache(CacheFlag.ROLE_TAGS);
+		builder.enableCache(CacheFlag.ROLE_TAGS, CacheFlag.VOICE_STATE);
 		JDA jda = builder.build();
 
 		System.setProperty("derby.language.sequence.preallocator", "1"); // prevent leaks from improper shutdowns
