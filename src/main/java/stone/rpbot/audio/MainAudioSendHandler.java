@@ -1,6 +1,8 @@
 package stone.rpbot.audio;
 
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.audio.AudioSendHandler;
+import net.dv8tion.jda.api.managers.AudioManager;
 
 import java.io.BufferedInputStream;
 import java.io.InputStream;
@@ -24,6 +26,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.sound.sampled.AudioFormat;
@@ -65,7 +69,12 @@ public class MainAudioSendHandler implements AudioSendHandler {
     private MainAudioSendHandler.AudioStreamMixer audioStreamMixer = this.new AudioStreamMixer();
 
     private static ExecutorService threadPool = Executors.newCachedThreadPool();
+    private static ScheduledExecutorService activityPool = Executors.newSingleThreadScheduledExecutor(); // if this needs more than 1 thread I'll eat my hat
+    private AtomicBoolean hasProvided = new AtomicBoolean(true);
     
+    public MainAudioSendHandler(long guildId, JDA jda) {
+        activityPool.schedule(this.new ActivityDetector(guildId, jda), 30, TimeUnit.SECONDS);
+    }
     @Override
     public boolean canProvide() {
         return !packets.isEmpty();
@@ -76,6 +85,7 @@ public class MainAudioSendHandler implements AudioSendHandler {
         threadPool.submit(audioStreamManager);
         threadPool.submit(audioStreamMixer);
         //System.out.println(packetQueues.size());
+        hasProvided.set(true);
         return packets.remove();
     }
 
@@ -205,34 +215,63 @@ public class MainAudioSendHandler implements AudioSendHandler {
                 return;
             }
 
-            byte[][] mixedPackets = new byte[mixedLength - packets.size()][packetLength];
+            if (!packetQueues.isEmpty()) {
+                byte[][] mixedPackets = new byte[mixedLength - packets.size()][packetLength];
             
-            Spliterator<Map.Entry<Integer, Queue<byte[]>>> queues = packetQueues.entrySet().spliterator();
-            queues.forEachRemaining((entry) -> {
-                    //System.out.println("mixing");
-                    Queue<byte[]> packetQueue = entry.getValue();
-                    for (byte[] mixedPacket : mixedPackets) {
-                        byte[] newPacket = packetQueue.remove();
-                        for (int i = 0; i < mixedPacket.length; i += 2) {
-                            int mixedValue = (mixedPacket[i] << 8) + mixedPacket[i + 1];
-                            int newValue = (newPacket[i] << 8) + newPacket[i + 1];
-                            int sum = Math.min(Math.max(mixedValue + newValue, -32768), 32767);
-                            mixedPacket[i] = (byte) ((sum & 0x0000ff00) >> 8);
-                            mixedPacket[i + 1] = (byte) (sum & 0x000000ff);
+                Spliterator<Map.Entry<Integer, Queue<byte[]>>> queues = packetQueues.entrySet().spliterator();
+                queues.forEachRemaining((entry) -> {
+                        //System.out.println("mixing");
+                        Queue<byte[]> packetQueue = entry.getValue();
+                        for (byte[] mixedPacket : mixedPackets) {
+                            byte[] newPacket = packetQueue.remove();
+                            for (int i = 0; i < mixedPacket.length; i += 2) {
+                                int mixedValue = (mixedPacket[i] << 8) + mixedPacket[i + 1];
+                                int newValue = (newPacket[i] << 8) + newPacket[i + 1];
+                                int sum = Math.min(Math.max(mixedValue + newValue, -32768), 32767);
+                                mixedPacket[i] = (byte) ((sum & 0x0000ff00) >> 8);
+                                mixedPacket[i + 1] = (byte) (sum & 0x000000ff);
+                            }
+                            if (packetQueue.isEmpty()) {
+                                System.out.println("Mixer: removing");
+                                packetQueues.remove(entry.getKey());
+                                break;
+                            }
                         }
-                        if (packetQueue.isEmpty()) {
-                            System.out.println("Mixer: removing");
-                            packetQueues.remove(entry.getKey());
-                            break;
-                        }
-                    }
-                });
+                    });
 
-            for (byte[] mixedPacket : mixedPackets) {
-                packets.add(ByteBuffer.wrap(mixedPacket));
+                for (byte[] mixedPacket : mixedPackets) {
+                    packets.add(ByteBuffer.wrap(mixedPacket));
+                }
             }
 
             isMixing.set(false);
+        }
+    }
+
+    public class ActivityDetector implements Runnable {
+
+        private long guild;
+        private JDA jda;
+
+        public ActivityDetector(long guildId, JDA jda) {
+            this.guild = guildId;
+            this.jda = jda;
+        }
+        
+        @Override
+        public void run() {
+            if (!hasProvided.compareAndExchange(true, false)) {
+                AudioManager manager = jda.getGuildById(guild).getAudioManager();
+                synchronized (manager) {
+                    if (manager.isConnected()) {
+                        manager.closeAudioConnection();
+                        manager.setSendingHandler(null);
+                    }
+                }
+            } else {
+                activityPool.schedule(this, 30, TimeUnit.SECONDS);
+            }
+            // TODO: Say "bye bye!" when leaving
         }
     }
 }
