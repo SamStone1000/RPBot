@@ -4,6 +4,8 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.audio.AudioSendHandler;
 import net.dv8tion.jda.api.managers.AudioManager;
 
+import stone.rpbot.audio.AudioSupplier;
+
 import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.io.IOException;
@@ -43,12 +45,7 @@ public class MainAudioSendHandler implements AudioSendHandler {
     private Queue<ByteBuffer> packets = new ConcurrentLinkedQueue<>();
     private static int mixedLength = 100 / 40; // 100 ms / 20 ms for number of mixed packets to buffer
 
-    private Map<Integer, Queue<byte[]>> packetQueues = new ConcurrentHashMap<>();
-
-    /**
-     * The number of bytes per buffer for 20 ms
-     */
-    private static int packetLength;
+    private Map<Integer, AudioSupplier> audioSuppliers = new ConcurrentHashMap<>();
 
     private static AtomicInteger lastId = new AtomicInteger();
     
@@ -57,18 +54,9 @@ public class MainAudioSendHandler implements AudioSendHandler {
      */
     private static int queueLength = 10 * 1000 / 20; // 10 s / 20 ms
     
-    static {
-        int byteSize = Byte.SIZE;
-        float sampleRate = AudioSendHandler.INPUT_FORMAT.getSampleRate() / 1000f;
-        int sampleSize = AudioSendHandler.INPUT_FORMAT.getSampleSizeInBits();
-        int bufferTime = 40; // packet length in ms
-        packetLength = (int) (bufferTime * (sampleRate * sampleSize) / byteSize);
-    }
-
-    private MainAudioSendHandler.AudioStreamManager audioStreamManager = this.new AudioStreamManager();
     private MainAudioSendHandler.AudioStreamMixer audioStreamMixer = this.new AudioStreamMixer();
 
-    private static ExecutorService threadPool = Executors.newCachedThreadPool();
+    static ExecutorService threadPool = Executors.newCachedThreadPool();
     private static ScheduledExecutorService activityPool = Executors.newSingleThreadScheduledExecutor(); // if this needs more than 1 thread I'll eat my hat
     private AtomicBoolean hasProvided = new AtomicBoolean(true);
     
@@ -82,7 +70,6 @@ public class MainAudioSendHandler implements AudioSendHandler {
 
     @Override
     public ByteBuffer provide20MsAudio() {
-        threadPool.submit(audioStreamManager);
         threadPool.submit(audioStreamMixer);
         //System.out.println(packetQueues.size());
         hasProvided.set(true);
@@ -94,115 +81,26 @@ public class MainAudioSendHandler implements AudioSendHandler {
         return false;
     }
 
-    public int addAudioStream(AudioInputStream audioStream) {
-        return this.audioStreamManager.addAudioStream(audioStream);
+    public int add(AudioInputStream audioStream) {
+        return this.add(new SoundEffect(audioStream));
     }
 
     public int addTempAudioFile(Path file) throws IOException, UnsupportedAudioFileException {
         //InputStream fileStream = Files.newInputStream(file, StandardOpenOption.DELETE_ON_CLOSE);
         InputStream fileStream = new BufferedInputStream(Files.newInputStream(file, StandardOpenOption.DELETE_ON_CLOSE));
-        return this.addAudioStream(AudioSystem.getAudioInputStream(fileStream));
+        return this.add(AudioSystem.getAudioInputStream(fileStream));
         //return this.addAudioStream(AudioSystem.getAudioInputStream(file.toFile()));
     }
-
-    public boolean removeAudioStream(int id) {
-        return this.audioStreamManager.removeAudioStream(id);
+    
+    public int add(AudioSupplier supplier) {
+    	int id = lastId.incrementAndGet();
+    	this.audioSuppliers.put(id, supplier);
+        this.threadPool.submit(audioStreamMixer);
+    	return id;
     }
 
-    private class AudioStreamManager implements Runnable {
-        private AtomicBoolean isBuffering = new AtomicBoolean(false);
-        private Map<Integer, AudioInputStream> audioStreams = new ConcurrentHashMap<>();
-        
-        @Override
-        public void run() {
-            try {
-                //System.out.println("trying to buffer");
-                if (isBuffering.compareAndExchange(false, true)) {
-                    return;
-                }
-
-
-                //System.out.println("buffering");
-                Spliterator<Map.Entry<Integer, AudioInputStream>> entries = audioStreams.entrySet().spliterator();
-                //System.out.println(entries.hasNext());
-                entries.forEachRemaining((entry) -> {
-                        Queue<byte[]> packetQueue = packetQueues.get(entry.getKey());
-                        int size = packetQueue.size();
-                        //System.out.println(size);
-                        if (size < queueLength) {
-                            AudioInputStream audioStream = entry.getValue();
-                            boolean hasMore = fillAudioQueue(packetQueue, audioStream, (queueLength * 2) - size);
-                            if (!hasMore) {
-                                System.out.println("Manager: removed!");
-                                audioStreams.remove(entry.getKey());
-                            }
-                        }
-                    });
-                isBuffering.set(false);
-            } catch (Exception e) {
-                System.out.println(e.toString());
-            }
-        }
-
-        public int addAudioStream(AudioInputStream audioStream) {
-            if (!audioStream.getFormat().matches(AudioSendHandler.INPUT_FORMAT)) {
-                audioStream = AudioSystem.getAudioInputStream(AudioSendHandler.INPUT_FORMAT, audioStream);
-            }
-
-            int nextId = lastId.incrementAndGet();
-            Queue<byte[]> packetQueue = new ConcurrentLinkedQueue<>();
-            boolean hasMore = fillAudioQueue(packetQueue, audioStream, queueLength * 2);
-            // Queue has to go in first to prevent the mixing from trying to
-            // grap a queue that didn't exist because a stream that exists in
-            // the stream map should have a counterpart in the queue map
-            packetQueues.put(nextId, packetQueue); 
-            if (hasMore) {
-                audioStreams.put(nextId, audioStream);
-            }
-
-            if (packets.isEmpty()) {
-                threadPool.submit(audioStreamMixer);
-                //packets.add(ByteBuffer.wrap(new byte[packetLength]));
-            }
-            return nextId;
-        }
-
-        public boolean removeAudioStream(int id) {
-            return audioStreams.remove(id) != null;
-        }
-
-        /**
-         * Fills the supplied queue with <length> ByteBuffers
-         *
-         * Automatically closes the stream once the end is reached, and returns false
-         *
-         * @param packets The queue to fill with ByteBuffers
-         * @param audioStream The stream to pull audio data from
-         * @param length The number of packets to pull from the audioStream
-         * @return false if the audioStream ran out of audio data, true otherwise
-         */
-        private boolean fillAudioQueue(Queue<byte[]> output, AudioInputStream audioStream, int length) {
-            try {
-                for (int i = 0; i < length; i++) {
-                    byte[] packet = new byte[packetLength];
-                    // this weird order is to ensure that the queue doesn't have a unprocessed packet in it (which could be seen on another thread potentially)
-                    boolean empty = audioStream.read(packet) < packetLength;
-                    output.add(packet);
-                    if (empty) {
-                        audioStream.close();
-                        return false;
-                    }
-                }
-            } catch (IOException e) {
-                try {
-                    audioStream.close();
-                } catch (IOException d) {
-                    return false;
-                }
-                return false;
-            }
-            return true;
-        }
+    public boolean removeAudio(int id) {
+        return this.audioSuppliers.remove(id) != null;
     }
 
     private class AudioStreamMixer implements Runnable {
@@ -215,15 +113,15 @@ public class MainAudioSendHandler implements AudioSendHandler {
                 return;
             }
 
-            if (!packetQueues.isEmpty()) {
-                byte[][] mixedPackets = new byte[mixedLength - packets.size()][packetLength];
+            if (!audioSuppliers.isEmpty()) {
+                byte[][] mixedPackets = new byte[mixedLength - packets.size()][AudioUtils.PACKET_ARRAY_LENGTH];
             
-                Spliterator<Map.Entry<Integer, Queue<byte[]>>> queues = packetQueues.entrySet().spliterator();
+                Spliterator<Map.Entry<Integer, AudioSupplier>> queues = audioSuppliers.entrySet().spliterator();
                 queues.forEachRemaining((entry) -> {
                         //System.out.println("mixing");
-                        Queue<byte[]> packetQueue = entry.getValue();
+                        AudioSupplier packetQueue = entry.getValue();
                         for (byte[] mixedPacket : mixedPackets) {
-                            byte[] newPacket = packetQueue.remove();
+                            byte[] newPacket = packetQueue.getPacket();
                             for (int i = 0; i < mixedPacket.length; i += 2) {
                                 int mixedValue = (mixedPacket[i] << 8) + mixedPacket[i + 1];
                                 int newValue = (newPacket[i] << 8) + newPacket[i + 1];
@@ -231,9 +129,9 @@ public class MainAudioSendHandler implements AudioSendHandler {
                                 mixedPacket[i] = (byte) ((sum & 0x0000ff00) >> 8);
                                 mixedPacket[i + 1] = (byte) (sum & 0x000000ff);
                             }
-                            if (packetQueue.isEmpty()) {
+                            if (packetQueue.isClosed()) {
                                 System.out.println("Mixer: removing");
-                                packetQueues.remove(entry.getKey());
+                                audioSuppliers.remove(entry.getKey());
                                 break;
                             }
                         }
