@@ -67,7 +67,7 @@ public class MainAudioSendHandler implements AudioSendHandler {
     @Override
     public ByteBuffer provide20MsAudio() {
         threadPool.submit(audioStreamMixer);
-        // System.out.println(packetQueues.size());
+        System.out.println(packets.size());
         hasProvided.set(true);
         return packets.remove();
     }
