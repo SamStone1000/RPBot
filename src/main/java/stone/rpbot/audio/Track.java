@@ -4,6 +4,7 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
@@ -49,20 +50,11 @@ public interface Track extends AudioSupplier {
 					return AudioUtils.EMPTY_PACKET;
 				}
 			} else {
-				Path tempFile;
 				try {
-					tempFile = Files.createTempFile("rpbot-track", ".wav").toAbsolutePath();
 					ProcessBuilder pb = new ProcessBuilder("ffmpeg", "-y", "-i", file.toAbsolutePath().toString(),
-							tempFile.toString());
-					pb.redirectOutput(Path.of("/tmp/ffmpeg.log").toFile());
-					pb.redirectError(Path.of("/tmp/ffmpeg.error").toFile());
-					pb.start().waitFor();
-				} catch (InterruptedException | IOException e) {
-					return AudioUtils.EMPTY_PACKET;
-				}
-				try {
+                                                                               "-f", "wav", "-");
 					this.stream = AudioSystem.getAudioInputStream(AudioSendHandler.INPUT_FORMAT,
-							AudioSystem.getAudioInputStream(new BufferedInputStream(Files.newInputStream(tempFile))));
+                                                                                      AudioSystem.getAudioInputStream(new BufferedInputStream(pb.start().getInputStream())));
 				} catch (UnsupportedAudioFileException | IOException e) {
 					return AudioUtils.EMPTY_PACKET;
 				}
