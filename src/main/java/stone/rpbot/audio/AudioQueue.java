@@ -14,8 +14,8 @@ public class AudioQueue implements AudioSupplier, Runnable {
 
     private volatile Track currentTrack;
     // these could be the same queue
-    private volatile Queue<byte[]> currentlyPlaying;
-    private volatile Queue<byte[]> currentlyBuffering;
+    private volatile Queue<byte[]> currentlyPlaying = null;
+    private volatile Queue<byte[]> currentlyBuffering = null;
 
     private volatile Track bufferingTrack;
 
@@ -24,11 +24,13 @@ public class AudioQueue implements AudioSupplier, Runnable {
 
     private boolean finishedBuffering = false;
     private int volume = 100;
-    private double percentVolume = 1;
+    private double percentVolume = .5;
 
     public void addTrack(Track stream, int priority) {
+        System.out.println("adding track!");
         TrackPriority trackPriority = new TrackPriority(priority, lastId.incrementAndGet());
         trackList.put(trackPriority, stream);
+        System.out.println("currentlyPlaying == null -> "+(currentlyPlaying == null));
         if (currentlyPlaying == null) {
             this.skip();
         }
@@ -52,20 +54,22 @@ public class AudioQueue implements AudioSupplier, Runnable {
         if (packet == null) {
             packet = AudioUtils.EMPTY_PACKET;
         }
-        for (int i = 0; i < packet.length; i++) {
+        byte[] newPacket = new byte[AudioUtils.PACKET_ARRAY_LENGTH];
+        for (int i = 0; i < packet.length; i += 2) {
             int oldValue = (packet[i] << 8) + packet[i + 1];
-            int newValue = Math.min(Math.max((int) (oldValue * this.percentVolume), -32768), 32767);
-            packet[i] = (byte) ((newValue & 0x0000ff00) >> 8);
-            packet[i + 1] = (byte) (newValue & 0x000000ff);
+            int newValue = (int) Math.min(Math.max(oldValue * this.percentVolume, -32768), 32767);
+            newPacket[i] = (byte) ((newValue & 0x0000ff00) >> 8);
+            newPacket[i + 1] = (byte) (newValue & 0x000000ff);
         }
+    
         MainAudioSendHandler.threadPool.submit(this);
-        return packet;
+        return newPacket;
     }
 
     @Override
     public void run() {
         if (!isBuffering.compareAndExchange(false, true)) {
-            System.out.println(finishedBuffering);
+            System.out.println("AudioQueue: finishedBuffering = "+finishedBuffering);
             if (currentlyPlaying == currentlyBuffering && finishedBuffering) {
                 currentlyBuffering = new ConcurrentLinkedQueue<byte[]>();
                 bufferingTrack = trackList.pollFirstEntry().getValue();
@@ -73,7 +77,7 @@ public class AudioQueue implements AudioSupplier, Runnable {
             }
             if (!finishedBuffering) {
                 finishedBuffering = !AudioUtils.fillAudioQueue(currentlyBuffering, bufferingTrack,
-                        10000 / 20 - currentlyBuffering.size());
+                                                               10000 / 20 - currentlyBuffering.size());
             }
 
             isBuffering.set(false);
@@ -82,6 +86,8 @@ public class AudioQueue implements AudioSupplier, Runnable {
 
     @Override
     public boolean isClosed() {
+        System.out.println("currentlyPlaying.isEmpty() + "+ currentlyPlaying.isEmpty());
+        System.out.println("currentlyBuffering.isEmpty() + " + currentlyBuffering.isEmpty());
         return currentlyPlaying.isEmpty() && currentlyBuffering.isEmpty();
     }
 
@@ -114,7 +120,7 @@ public class AudioQueue implements AudioSupplier, Runnable {
 
     public void setVolume(int volume) {
         this.volume = volume;
-        this.percentVolume = (this.volume / 100);
+        this.percentVolume = (this.volume / 100d);
     }
 
     public record TrackPriority(int priority, int FIFO) implements Comparable<TrackPriority> {

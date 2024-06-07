@@ -67,7 +67,7 @@ public class MainAudioSendHandler implements AudioSendHandler {
     @Override
     public ByteBuffer provide20MsAudio() {
         threadPool.submit(audioStreamMixer);
-        System.out.println(packets.size());
+        System.out.println("Handler: packets.size() = "+packets.size());
         hasProvided.set(true);
         return packets.remove();
     }
@@ -85,7 +85,7 @@ public class MainAudioSendHandler implements AudioSendHandler {
         // InputStream fileStream = Files.newInputStream(file,
         // StandardOpenOption.DELETE_ON_CLOSE);
         InputStream fileStream = new BufferedInputStream(
-                Files.newInputStream(file, StandardOpenOption.DELETE_ON_CLOSE));
+                                                         Files.newInputStream(file, StandardOpenOption.DELETE_ON_CLOSE));
         return this.add(AudioSystem.getAudioInputStream(fileStream));
         // return this.addAudioStream(AudioSystem.getAudioInputStream(file.toFile()));
     }
@@ -94,6 +94,7 @@ public class MainAudioSendHandler implements AudioSendHandler {
         int id = lastId.incrementAndGet();
         this.audioSuppliers.put(id, supplier);
         MainAudioSendHandler.threadPool.submit(audioStreamMixer);
+        System.out.println("Adding supplier: "+supplier);
         return id;
     }
 
@@ -125,32 +126,32 @@ public class MainAudioSendHandler implements AudioSendHandler {
 
                 Spliterator<Map.Entry<Integer, AudioSupplier>> queues = audioSuppliers.entrySet().spliterator();
                 queues.forEachRemaining((entry) -> {
-                    // System.out.println("mixing");
-                    AudioSupplier packetQueue = entry.getValue();
-                    if (packetQueue.isPlaying()) {
-                        didWork.set(true);
-                        for (byte[] mixedPacket : mixedPackets) {
-                            byte[] newPacket = packetQueue.getPacket();
-                            for (int i = 0; i < mixedPacket.length; i += 2) {
-                                int mixedValue = (mixedPacket[i] << 8) + mixedPacket[i + 1];
-                                int newValue = (newPacket[i] << 8) + newPacket[i + 1];
-                                int sum = Math.min(Math.max(mixedValue + newValue, -32768), 32767);
-                                mixedPacket[i] = (byte) ((sum & 0x0000ff00) >> 8);
-                                mixedPacket[i + 1] = (byte) (sum & 0x000000ff);
-                            }
-                            if (packetQueue.isClosed()) {
-                                System.out.println("Mixer: removing");
-                                audioSuppliers.remove(entry.getKey());
-                                break;
+
+                        AudioSupplier packetQueue = entry.getValue();
+                    
+                        if (packetQueue.isPlaying()) {
+                            System.out.println("mixing");
+                            didWork.set(true);
+                            for (byte[] mixedPacket : mixedPackets) {
+                                byte[] newPacket = packetQueue.getPacket();
+                                for (int i = 0; i < mixedPacket.length; i += 2) {
+                                    int mixedValue = (mixedPacket[i] << 8) + mixedPacket[i + 1];
+                                    int newValue = (newPacket[i] << 8) + newPacket[i + 1];
+                                    int sum = Math.min(Math.max(mixedValue + newValue, -32768), 32767);
+                                    mixedPacket[i] = (byte) ((sum & 0x0000ff00) >> 8);
+                                    mixedPacket[i + 1] = (byte) (sum & 0x000000ff);
+                                }
+                                if (packetQueue.isClosed()) {
+                                    System.out.println("Mixer: removing");
+                                    audioSuppliers.remove(entry.getKey());
+                                    break;
+                                }
                             }
                         }
-                    }
-                });
+                    });
 
-                if (didWork.get()) {
-                    for (byte[] mixedPacket : mixedPackets) {
-                        packets.add(ByteBuffer.wrap(mixedPacket));
-                    }
+                for (byte[] mixedPacket : mixedPackets) {
+                    packets.add(ByteBuffer.wrap(mixedPacket));
                 }
             }
 

@@ -23,7 +23,7 @@ public abstract class AudioUtils {
         int byteSize = Byte.SIZE;
         float sampleRate = AudioSendHandler.INPUT_FORMAT.getSampleRate() / 1000f;
         int sampleSize = AudioSendHandler.INPUT_FORMAT.getSampleSizeInBits();
-        int bufferTime = 40; // packet length in ms don't know its doubled
+        int bufferTime = 40; // packet length in ms, don't know its doubled
         PACKET_ARRAY_LENGTH = (int) (bufferTime * (sampleRate * sampleSize) / byteSize);
     }
     

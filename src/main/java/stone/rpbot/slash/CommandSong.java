@@ -50,6 +50,7 @@ public class CommandSong implements SlashCommand {
                 break;
             case "next":
                 queue.skip();
+                interaction.reply("skipped!").queue();
                 break;
             case "volume":
                 String volume = interaction.getOption("volume").getAsString();
