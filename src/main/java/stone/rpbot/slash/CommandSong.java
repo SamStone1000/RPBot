@@ -1,6 +1,8 @@
 package stone.rpbot.slash;
 
 import java.io.IOException;
+import java.nio.file.FileVisitor;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 import javax.sound.sampled.UnsupportedAudioFileException;
@@ -11,6 +13,7 @@ import stone.rpbot.audio.AudioQueue;
 import stone.rpbot.audio.AudioUtils;
 import stone.rpbot.audio.MainAudioSendHandler;
 import stone.rpbot.audio.Track;
+import stone.rpbot.slash.song.SongFileAdderWalker;
 
 public class CommandSong implements SlashCommand {
 
@@ -39,13 +42,13 @@ public class CommandSong implements SlashCommand {
             case "add":
                 String songName = interaction.getOption("song").getAsString();
                 Path root = Path.of("/home", "stone", "music");
+                FileVisitor<Path> visitor = new SongFileAdderWalker(queue);
                 try {
-                    Track.File songFile = new Track.File(root.resolve(songName), "idk", "nah");
-                    queue.addTrack(songFile);
-                } catch (UnsupportedAudioFileException | IOException e) {
-                    interaction.reply("Something went wrong :( (Error 1)" + e).queue();
-                    return;
-                }
+                Files.walkFileTree(root.resolve(songName), visitor);
+            } catch (IOException e) {
+                interaction.reply("Something went wrong :( (error 2)").queue();
+                return;
+            }
                 interaction.reply("Queued up song!").queue();
                 break;
             case "next":

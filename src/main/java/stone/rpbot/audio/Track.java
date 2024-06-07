@@ -67,12 +67,12 @@ public interface Track extends AudioSupplier {
 			return this.isClosed;
 		}
 
-		public File(Path path, String title, String artist) throws UnsupportedAudioFileException, IOException {
+		public File(Path path, String title, String artist) {
 			this.file = path;
 			try {
 				this.stream = AudioSystem.getAudioInputStream(AudioSendHandler.INPUT_FORMAT,
 						AudioSystem.getAudioInputStream(new BufferedInputStream(Files.newInputStream(path))));
-			} catch (UnsupportedAudioFileException e) {
+			} catch (UnsupportedAudioFileException | IOException e) {
 				this.stream = null;
 			}
 			this.title = title;
