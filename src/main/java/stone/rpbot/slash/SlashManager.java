@@ -32,34 +32,37 @@ import stone.rpbot.slash.say.CommandSay;
  * 
  */
 public class SlashManager extends ListenerAdapter {
-	private Map<String, SlashCommand> commands = new HashMap<>();
+    private Map<String, SlashCommand> commands = new HashMap<>();
 
-	public void init(CommandListUpdateAction commands) {
-		registerSlashCommand("man", new ManCommand(this));
-		registerSlashCommand("say", new CommandSay());
-		registerSlashCommand("mpc", new CommandSong());
-		commands.addCommands(
-				Commands.slash("time", "Produces a Discord timestamp from input").addOption(OptionType.STRING, "input",
-						"Input can take the form of absolute inputs or relative inputs prefixed with a +/-", true));
-		commands.addCommands(Commands.slash("man", "Gets manual for specified command").addOption(OptionType.STRING,
-				ManCommand.OPTION_COMMAND, "The name of the command to get the manual for", true));
-		commands.addCommands(Commands.slash("say", "funny astronaut voice").addOption(OptionType.STRING, "text",
-				"Text to say", true));
-		commands.addCommands(Commands.slash("mpc", "music").addSubcommands(
-				new SubcommandData("toggle", "Toggle the playing state"),
-				new SubcommandData("add", "Add music").addOption(OptionType.STRING, "song", "Song file", true, false)));
-	}
+    public void init(CommandListUpdateAction commands) {
+        registerSlashCommand("man", new ManCommand(this));
+        registerSlashCommand("say", new CommandSay());
+        registerSlashCommand("mpc", new CommandSong());
+        commands.addCommands(
+                Commands.slash("time", "Produces a Discord timestamp from input").addOption(OptionType.STRING, "input",
+                        "Input can take the form of absolute inputs or relative inputs prefixed with a +/-", true));
+        commands.addCommands(Commands.slash("man", "Gets manual for specified command").addOption(OptionType.STRING,
+                ManCommand.OPTION_COMMAND, "The name of the command to get the manual for", true));
+        commands.addCommands(Commands.slash("say", "funny astronaut voice").addOption(OptionType.STRING, "text",
+                "Text to say", true));
+        commands.addCommands(Commands.slash("mpc", "music").addSubcommands(
+                new SubcommandData("toggle", "Toggle the playing state"),
+                new SubcommandData("add", "Add music")
+                .addOption(OptionType.STRING, "song", "Song file", true, false),
+                new SubcommandData("next", "Skip to the next track"),
+                new SubcommandData("volume", "Change the player's volume")));
+    }
 
-	@Override
-	public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
-		commands.get(event.getName()).onSlashCommand(event);
-	}
+    @Override
+    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+        commands.get(event.getName()).onSlashCommand(event);
+    }
 
-	public void registerSlashCommand(String key, SlashCommand value) {
-		commands.put(key, value);
-	}
+    public void registerSlashCommand(String key, SlashCommand value) {
+        commands.put(key, value);
+    }
 
-	public SlashCommand getSlashCommand(String key) {
-		return commands.get(key);
-	}
+    public SlashCommand getSlashCommand(String key) {
+        return commands.get(key);
+    }
 }
