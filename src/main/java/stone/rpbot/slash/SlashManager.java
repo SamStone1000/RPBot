@@ -50,7 +50,7 @@ public class SlashManager extends ListenerAdapter {
                 new SubcommandData("add", "Add music")
                 .addOption(OptionType.STRING, "song", "Song file", true, false),
                 new SubcommandData("next", "Skip to the next track"),
-                new SubcommandData("volume", "Change the player's volume")));
+                new SubcommandData("volume", "Change the player's volume").addOption(OptionType.STRING, "volume", "The volume, use +/- to make it relative", true, false)));
     }
 
     @Override

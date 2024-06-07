@@ -109,11 +109,12 @@ public class AudioQueue implements AudioSupplier, Runnable {
     }
 
     public void addVolume(int delta) {
-        this.volume += delta;
+        this.setVolume(this.volume + delta);
     }
 
     public void setVolume(int volume) {
         this.volume = volume;
+        this.percentVolume = (this.volume / 100);
     }
 
     public record TrackPriority(int priority, int FIFO) implements Comparable<TrackPriority> {

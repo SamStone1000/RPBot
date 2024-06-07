@@ -64,6 +64,7 @@ public class CommandSong implements SlashCommand {
                     interaction.reply("Volume should be a number, either without a prefix to set the volume to an absolute value, or with a +/- to change it by a relative amount").queue();
                     return;
                 }
+                interaction.reply("volume set!").queue();
                 break;
         }
     }
