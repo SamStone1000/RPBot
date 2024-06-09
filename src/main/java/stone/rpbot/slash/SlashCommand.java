@@ -17,6 +17,7 @@
  */
 package stone.rpbot.slash;
 
+import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 
 /**
@@ -24,7 +25,9 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
  */
 public interface SlashCommand {
 
-	public void onSlashCommand(SlashCommandInteractionEvent event);
+    public void onSlashCommand(SlashCommandInteractionEvent event);
 
-	public String getManInfo();
+    public String getManInfo();
+
+    public default void onAutoComplete(CommandAutoCompleteInteractionEvent event) {}
 }

@@ -7,12 +7,15 @@ import java.nio.file.Path;
 
 import javax.sound.sampled.UnsupportedAudioFileException;
 
+import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.interactions.commands.CommandAutoCompleteInteraction;
 import net.dv8tion.jda.api.interactions.commands.SlashCommandInteraction;
 import stone.rpbot.audio.AudioQueue;
 import stone.rpbot.audio.AudioUtils;
 import stone.rpbot.audio.MainAudioSendHandler;
 import stone.rpbot.audio.Track;
+import stone.rpbot.slash.song.SongCommandAutoComplete;
 import stone.rpbot.slash.song.SongFileAdderWalker;
 
 public class CommandSong implements SlashCommand {
@@ -31,6 +34,11 @@ public class CommandSong implements SlashCommand {
             default:
                 break;
         }
+    }
+
+    @Override
+    public void onAutoComplete(CommandAutoCompleteInteractionEvent event) {
+        SongCommandAutoComplete.onAutoComplete(event);
     }
 
     private void onEmptyGroup(String subcommandName, SlashCommandInteraction interaction, AudioQueue queue) {

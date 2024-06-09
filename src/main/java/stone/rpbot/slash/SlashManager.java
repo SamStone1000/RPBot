@@ -20,6 +20,7 @@ package stone.rpbot.slash;
 import java.util.HashMap;
 import java.util.Map;
 
+import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
@@ -56,6 +57,11 @@ public class SlashManager extends ListenerAdapter {
     @Override
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
         commands.get(event.getName()).onSlashCommand(event);
+    }
+
+    @Override
+    public void onCommandAutoCompleteInteraction(CommandAutoCompleteInteractionEvent event) {
+        commands.get(event.getName()).onAutoComplete(event);
     }
 
     public void registerSlashCommand(String key, SlashCommand value) {
