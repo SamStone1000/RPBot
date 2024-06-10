@@ -2,9 +2,7 @@ package stone.rpbot.audio;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
@@ -51,10 +49,10 @@ public interface Track extends AudioSupplier {
 				}
 			} else {
 				try {
-					ProcessBuilder pb = new ProcessBuilder("ffmpeg", "-y", "-i", file.toAbsolutePath().toString(),
-                                                                               "-f", "wav", "-");
+					ProcessBuilder pb = new ProcessBuilder("ffmpeg", "-y", "-i", file.toAbsolutePath().toString(), "-f",
+							"wav", "-");
 					this.stream = AudioSystem.getAudioInputStream(AudioSendHandler.INPUT_FORMAT,
-                                                                                      AudioSystem.getAudioInputStream(new BufferedInputStream(pb.start().getInputStream())));
+							AudioSystem.getAudioInputStream(new BufferedInputStream(pb.start().getInputStream())));
 				} catch (UnsupportedAudioFileException | IOException e) {
 					return AudioUtils.EMPTY_PACKET;
 				}
@@ -69,12 +67,7 @@ public interface Track extends AudioSupplier {
 
 		public File(Path path, String title, String artist) {
 			this.file = path;
-			try {
-				this.stream = AudioSystem.getAudioInputStream(AudioSendHandler.INPUT_FORMAT,
-						AudioSystem.getAudioInputStream(new BufferedInputStream(Files.newInputStream(path))));
-			} catch (UnsupportedAudioFileException | IOException e) {
-				this.stream = null;
-			}
+			this.stream = null;
 			this.title = title;
 			this.artist = artist;
 		}
