@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
+import net.dv8tion.jda.api.interactions.commands.Command.Choice;
 import net.dv8tion.jda.api.interactions.commands.CommandAutoCompleteInteraction;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 
@@ -76,8 +77,8 @@ public abstract class SongCommandAutoComplete {
 					return;
 				}
 				System.out.println(autocompletes);
-				interaction.replyChoiceStrings(autocompletes.stream().limit(OptionData.MAX_CHOICES)
-						.map(autoComplete -> autoComplete.potential().toString()).toList()).queue();
+				interaction.replyChoices(autocompletes.stream().limit(OptionData.MAX_CHOICES)
+                                                         .map(autoComplete -> new Choice(autoComplete.potential().toString(), directory.resolve(autoComplete.potential()).toString())).toList()).queue();
 			}
 		}
 	}
