@@ -7,6 +7,7 @@ import java.nio.file.Path;
 
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.commands.SlashCommandInteraction;
 import stone.rpbot.audio.AudioQueue;
 import stone.rpbot.audio.AudioUtils;
@@ -43,17 +44,20 @@ public class CommandSong implements SlashCommand {
 			interaction.reply("toggled!").queue();
 			break;
 		case "add":
+                    InteractionHook hook = interaction.getHook();
+                    interaction.deferReply().queue();
 			String songName = interaction.getOption("song").getAsString();
 			Path root = Path.of("/home", "stone", "music");
-			FileVisitor<Path> visitor = new SongFileAdderWalker(queue);
+			SongFileAdderWalker visitor = new SongFileAdderWalker();
 			try {
 				Files.walkFileTree(root.resolve(songName), visitor);
+                                visitor.add(queue);
 			} catch (IOException e) {
-				interaction.reply("Something went wrong :( (error 2)").queue();
+                            hook.editOriginal("Something went wrong :( (error 2)").queue();
 				System.out.println(e);
 				return;
 			}
-			interaction.reply("Queued up song!").queue();
+			hook.editOriginal("Queued up song!").queue();
 			break;
 		case "next":
 			queue.skip();

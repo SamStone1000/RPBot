@@ -27,10 +27,8 @@ public class AudioQueue implements AudioSupplier, Runnable {
 	private double percentVolume = .35;
 
 	public void addTrack(Track stream, int priority) {
-		System.out.println("adding track!");
 		TrackPriority trackPriority = new TrackPriority(priority, lastId.incrementAndGet());
 		trackList.put(trackPriority, stream);
-		System.out.println("currentlyPlaying == null -> " + (currentlyPlaying == null));
 		if (currentlyPlaying == null) {
 			this.skip();
 		}
@@ -69,7 +67,6 @@ public class AudioQueue implements AudioSupplier, Runnable {
 	@Override
 	public void run() {
 		if (!isBuffering.compareAndExchange(false, true)) {
-			System.out.println("AudioQueue: finishedBuffering = " + finishedBuffering);
 			if (currentlyPlaying == currentlyBuffering && finishedBuffering) {
 				currentlyBuffering = new ConcurrentLinkedQueue<byte[]>();
 				bufferingTrack = trackList.pollFirstEntry().getValue();
@@ -86,8 +83,6 @@ public class AudioQueue implements AudioSupplier, Runnable {
 
 	@Override
 	public boolean isClosed() {
-		System.out.println("currentlyPlaying.isEmpty() + " + currentlyPlaying.isEmpty());
-		System.out.println("currentlyBuffering.isEmpty() + " + currentlyBuffering.isEmpty());
 		return currentlyPlaying.isEmpty() && currentlyBuffering.isEmpty();
 	}
 

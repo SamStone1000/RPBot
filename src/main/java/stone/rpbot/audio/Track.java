@@ -11,76 +11,80 @@ import javax.sound.sampled.UnsupportedAudioFileException;
 import net.dv8tion.jda.api.audio.AudioSendHandler;
 
 public interface Track extends AudioSupplier {
-	public String getTitle();
+    public String getTitle();
 
-	public String getArtist();
+    public String getArtist();
 
-	public static class File implements Track {
+    public static class File implements Track {
 
-		private String title;
-		private String artist;
+        private String title;
+        private String artist;
 
-		private AudioInputStream stream;
-		private boolean isClosed = false;
+        private AudioInputStream stream;
+        private boolean isClosed = false;
 
-		private final Path file;
+        private final Path file;
 
-		@Override
-		public byte[] getPacket() {
-			if (this.stream != null) {
-				byte[] packet = new byte[AudioUtils.PACKET_ARRAY_LENGTH];
-				try {
-					int readLength = this.stream.read(packet);
-					this.isClosed = readLength < AudioUtils.PACKET_ARRAY_LENGTH;
-					if (this.isClosed) {
-						this.stream.close();
-					}
-					return packet;
-				} catch (IOException e) {
-					// something went wrong reading data, or closing the stream
-					this.isClosed = true;
-					try {
-						this.stream.close();
-					} catch (IOException d) {
-						// something went wrong on the safety close
-					}
-					// return empty array in case of any errors
-					return AudioUtils.EMPTY_PACKET;
-				}
-			} else {
-				try {
-					ProcessBuilder pb = new ProcessBuilder("ffmpeg", "-y", "-i", file.toAbsolutePath().toString(), "-f",
-							"wav", "-");
-					this.stream = AudioSystem.getAudioInputStream(AudioSendHandler.INPUT_FORMAT,
-							AudioSystem.getAudioInputStream(new BufferedInputStream(pb.start().getInputStream())));
-				} catch (UnsupportedAudioFileException | IOException e) {
-					return AudioUtils.EMPTY_PACKET;
-				}
-				return getPacket();
-			}
-		}
+        @Override
+        public byte[] getPacket() {
+            if (this.stream != null) {
+                byte[] packet = new byte[AudioUtils.PACKET_ARRAY_LENGTH];
+                try {
+                    int readLength = this.stream.read(packet);
+                    this.isClosed = readLength < AudioUtils.PACKET_ARRAY_LENGTH;
+                    if (this.isClosed) {
+                        this.stream.close();
+                    }
+                    return packet;
+                } catch (IOException e) {
+                    // something went wrong reading data, or closing the stream
+                    this.isClosed = true;
+                    try {
+                        this.stream.close();
+                    } catch (IOException d) {
+                        // something went wrong on the safety close
+                    }
+                    // return empty array in case of any errors
+                    return AudioUtils.EMPTY_PACKET;
+                }
+            } else {
+                try {
+                    ProcessBuilder pb = new ProcessBuilder("ffmpeg", "-y", "-i", file.toAbsolutePath().toString(), "-f",
+                            "wav", "-");
+                    this.stream = AudioSystem.getAudioInputStream(AudioSendHandler.INPUT_FORMAT,
+                            AudioSystem.getAudioInputStream(new BufferedInputStream(pb.start().getInputStream())));
+                } catch (UnsupportedAudioFileException | IOException e) {
+                    return AudioUtils.EMPTY_PACKET;
+                }
+                return getPacket();
+            }
+        }
 
-		@Override
-		public boolean isClosed() {
-			return this.isClosed;
-		}
+        @Override
+        public boolean isClosed() {
+            return this.isClosed;
+        }
 
-		public File(Path path, String title, String artist) {
-			this.file = path;
-			this.stream = null;
-			this.title = title;
-			this.artist = artist;
-		}
+        public File(Path path, String title, String artist) {
+            this.file = path;
+            this.stream = null;
+            this.title = title;
+            this.artist = artist;
+        }
 
-		@Override
-		public String getTitle() {
-			return this.title;
-		}
+        @Override
+        public String getTitle() {
+            return this.title;
+        }
 
-		@Override
-		public String getArtist() {
-			return this.artist;
-		}
+        @Override
+        public String getArtist() {
+            return this.artist;
+        }
 
-	}
+        public Path getPath() {
+            return this.file;
+        }
+
+    }
 }
