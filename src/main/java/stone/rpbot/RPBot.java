@@ -136,7 +136,7 @@ public class RPBot extends ListenerAdapter {
 		Trigger freefallTrigger = TriggerBuilder.newTrigger().withSchedule(schedule).build();
 
 		JobDetail DLDetail = JobBuilder.newJob(DailyLyrics.class).withIdentity("Daily Lyric", "Recurring Messages")
-				.usingJobData("guild", Long.valueOf(args[1])).usingJobData("channel", 485967269512478721l).build();
+				.usingJobData("guild", Long.valueOf(args[1])).usingJobData("channel", 1274907657320398879l).build();
 		CronScheduleBuilder DLSchedule = CronScheduleBuilder.cronSchedule("0 0 15 * * ?")
 				.inTimeZone(TimeZone.getTimeZone("America/Louisville"));
 		Trigger DLTrigger = TriggerBuilder.newTrigger().withSchedule(DLSchedule).build();
