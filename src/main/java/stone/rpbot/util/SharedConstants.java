@@ -1,5 +1,14 @@
 package stone.rpbot.util;
 
+import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.channel.ChannelType;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import stone.rpbot.record.LyricStore;
+
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -10,15 +19,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.channel.ChannelType;
-import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
-import stone.rpbot.record.LyricStore;
-
 public class SharedConstants {
 
 	public static final String BIN = "botBin" + File.separatorChar;
@@ -28,7 +28,7 @@ public class SharedConstants {
 
 	public static final String ROLES_FOLDER = BIN + "roles" + File.separatorChar;
 
-	public static final String SQL_CONNECTION = "jdbc:derby:RPStore";
+    public static final String SQL_CONNECTION = "jdbc:derby:RPStore;create=true";
 	public static Connection DATABASE_CONNECTION;
 
 	public static final Logger GLOBAL_LOGGER = LoggerFactory.getLogger("Global Debug");
@@ -37,11 +37,11 @@ public class SharedConstants {
 
 	public static JDA jda;
 
-	public static void init(JDA jda) throws SQLException {
+    public static void init(JDA jda) throws SQLException {
 		SharedConstants.jda = jda;
 		List<Guild> guilds = jda.getGuilds();
 
-		DATABASE_CONNECTION = DriverManager.getConnection(SQL_CONNECTION + ";create=true");
+		DATABASE_CONNECTION = DriverManager.getConnection(SQL_CONNECTION);
 		DATABASE_CONNECTION.setAutoCommit(false);
 		Logger logger = LoggerFactory.getLogger(SharedConstants.class);
 		Statement statement = DATABASE_CONNECTION.createStatement();

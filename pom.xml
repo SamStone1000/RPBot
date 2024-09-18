@@ -4,7 +4,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/x
 <modelVersion>4.0.0</modelVersion>
 <groupId>stone</groupId>
 <artifactId>rpbot</artifactId>
-<version>1.6.0</version>
+<version>1.7.0</version>
 <name>RPBot</name>
 <description>A personal Discord bot</description>
 <build>
@@ -37,12 +37,12 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/x
         <mainClass>${project.groupId}.${project.artifactId}.${project.name}</mainClass>
       </configuration>
     </plugin>
-    <plugin>
+     <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
         <version>3.6.0</version>
         <configuration>
-          <!-- put your configurations here -->
+          <minimizeJar>false</minimizeJar>
         </configuration>
         <executions>
           <execution>

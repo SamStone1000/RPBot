@@ -1,15 +1,15 @@
 package stone.rpbot.recorders;
 
+import stone.rpbot.util.Helper;
+import stone.rpbot.util.MutableInteger;
+import stone.rpbot.util.SharedConstants;
+
 import java.io.File;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import stone.rpbot.util.Helper;
-import stone.rpbot.util.MutableInteger;
-import stone.rpbot.util.SharedConstants;
 
 /**
  * Counts the number of occurences of a string in the given message and adds it
@@ -23,7 +23,7 @@ public class Counter implements Recorder {
 	/**
 	 *
 	 */
-	protected Map<Long, MutableInteger> counts;
+    protected Map<Long, MutableInteger> counts;
 	/**
 	 * What the class is actually tracking, should find Strings similar to term
 	 */
@@ -33,7 +33,7 @@ public class Counter implements Recorder {
 	protected boolean shouldAffect;
 
 	public Counter(
-			Pattern pattern, Map<Long, MutableInteger> counts, File file, boolean shouldAffect,
+        Pattern pattern, Map<Long, MutableInteger> counts, File file, boolean shouldAffect,
 			boolean shouldResetCounts
 	) {
 		this.pattern = pattern;
@@ -110,7 +110,9 @@ public class Counter implements Recorder {
 	public void transfer(Recorder counter) { this.counts = counter.getCounts(); }
 
 	@Override
-	public Map<Long, MutableInteger> getCounts() { return counts; }
+    public Map<Long, MutableInteger> getCounts() {
+        return counts;
+    }
 
 	@Override
 	public String toString() {

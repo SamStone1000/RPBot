@@ -9,7 +9,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -60,9 +59,9 @@ public class Helper {
 		}
 	}
 
-	public static Map<Long, MutableInteger> readMap(File file) {
+    public static Map<Long, MutableInteger> readMap(File file) {
 
-		Map<Long, MutableInteger> map = new TreeMap<>();
+        TreeMap<Long, MutableInteger> map = new TreeMap<>();
 		if (file.exists())
 		{
 

@@ -1,5 +1,11 @@
 package stone.rpbot.recorders;
 
+import net.dv8tion.jda.api.entities.Message;
+
+import stone.rpbot.reactorRecorders.KarmaCounter;
+import stone.rpbot.reactorRecorders.ReactorRecord;
+import stone.rpbot.util.SharedConstants;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -8,11 +14,6 @@ import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
-
-import net.dv8tion.jda.api.entities.Message;
-import stone.rpbot.reactorRecorders.KarmaCounter;
-import stone.rpbot.reactorRecorders.ReactorRecord;
-import stone.rpbot.util.SharedConstants;
 
 public class MessageProcessers implements Consumer<Message> {
 
@@ -152,5 +153,9 @@ public class MessageProcessers implements Consumer<Message> {
 		output.setKarmaCounter(karmaCounter.copyOf(shouldResetCounts, shouldAffect));
 		return output;
 	}
+
+    public Recorder getCounts(String term) {
+        return this.counters.get(term);
+    }
 
 }
